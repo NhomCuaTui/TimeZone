@@ -113,37 +113,69 @@ function updateClocks() {
 // ==============================================
 // 4. XỬ LÝ TIME CONVERTER
 // ==============================================
-const timeInputs = document.querySelectorAll('.time-input');
-
 function initConverter() {
-    // Đặt giờ hiện tại cho tất cả các ô input theo đúng múi giờ của vùng đó
     const now = dayjs();
-    timeInputs.forEach(input => {
-        const tz = input.dataset.tz;
-        // Format bắt buộc của thẻ <input type="datetime-local"> là YYYY-MM-DDTHH:mm
-        input.value = now.tz(tz).format('YYYY-MM-DDTHH:mm');
+    const rows = document.querySelectorAll('.converter-row');
+    
+    rows.forEach(row => {
+        const tz = row.dataset.tz;
+        
+        // Đặt giờ hiện tại cho dòng
+        updateRowInputs(row, now.tz(tz));
+        
+        // Lắng nghe sự thay đổi trên từng ô input của dòng này
+        const inputs = row.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('change', () => {
+                handleRowChange(row);
+            });
+            // Tự động thêm số 0 đằng trước (ví dụ gõ 5 thành 05) khi click chuột ra ngoài
+            input.addEventListener('blur', (e) => {
+                if (e.target.value.length === 1 && !e.target.classList.contains('t-year')) {
+                    e.target.value = e.target.value.padStart(2, '0');
+                }
+            });
+        });
     });
 }
 
-// Bắt sự kiện khi người dùng sửa đổi giờ ở BẤT KỲ ô nào
-timeInputs.forEach(input => {
-    input.addEventListener('change', (e) => {
-        const changedValue = e.target.value;
-        const sourceTz = e.target.dataset.tz;
-        
-        if (!changedValue) return; // Bỏ qua nếu người dùng xóa trắng ô
+function updateRowInputs(row, dayjsObj) {
+    row.querySelector('.t-day').value = dayjsObj.format('DD');
+    row.querySelector('.t-month').value = dayjsObj.format('MM');
+    row.querySelector('.t-year').value = dayjsObj.format('YYYY');
+    row.querySelector('.t-hour').value = dayjsObj.format('HH');
+    row.querySelector('.t-minute').value = dayjsObj.format('mm');
+    row.querySelector('.t-second').value = dayjsObj.format('ss');
+}
 
-        // Phân tích thời gian người dùng vừa nhập, gắn nó với múi giờ của ô đó
-        // Ví dụ: Nhập 8h sáng ở ô VN, hệ thống sẽ hiểu là 8h sáng giờ VN
-        const parsedTime = dayjs.tz(changedValue, sourceTz);
-
-        // Cập nhật lại 3 ô còn lại
-        timeInputs.forEach(otherInput => {
-            if (otherInput !== e.target) {
-                const targetTz = otherInput.dataset.tz;
-                // Ép giờ vừa đổi sang múi giờ của ô đích và hiển thị
-                otherInput.value = parsedTime.tz(targetTz).format('YYYY-MM-DDTHH:mm');
-            }
-        });
+function handleRowChange(sourceRow) {
+    const sourceTz = sourceRow.dataset.tz;
+    
+    // Đọc giá trị từ các ô
+    const y = sourceRow.querySelector('.t-year').value;
+    const m = sourceRow.querySelector('.t-month').value;
+    const d = sourceRow.querySelector('.t-day').value;
+    const h = sourceRow.querySelector('.t-hour').value;
+    const min = sourceRow.querySelector('.t-minute').value;
+    const s = sourceRow.querySelector('.t-second').value;
+    
+    // Kiểm tra xem có ô nào bị trống không
+    if (!y || !m || !d || !h || !min || !s) return;
+    
+    // Tạo chuỗi chuẩn: YYYY-MM-DDTHH:mm:ss
+    const timeStr = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${h.padStart(2, '0')}:${min.padStart(2, '0')}:${s.padStart(2, '0')}`;
+    
+    // Ép chuỗi đó vào múi giờ của vùng đang nhập
+    const parsedTime = dayjs.tz(timeStr, sourceTz);
+    
+    // Nếu gõ ngày bậy bạ (như 32/13/2024) thì bỏ qua
+    if (!parsedTime.isValid()) return;
+    
+    // Cập nhật kết quả cho 3 vùng còn lại
+    document.querySelectorAll('.converter-row').forEach(row => {
+        if (row !== sourceRow) {
+            const targetTz = row.dataset.tz;
+            updateRowInputs(row, parsedTime.tz(targetTz));
+        }
     });
-});
+}

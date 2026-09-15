@@ -77,21 +77,57 @@
                     <h3>Time Converter (Chuyển đổi giờ)</h3>
                     <p class="subtitle">Mẹo: Chọn ngày & giờ ở một nơi, hệ thống sẽ tự động quy đổi cho 3 nơi còn lại!</p>
                     <div class="converter-list">
-                        <div class="converter-row">
+                        <!-- Việt Nam -->
+                        <div class="converter-row" data-tz="Asia/Ho_Chi_Minh">
                             <label>Việt Nam</label>
-                            <input type="datetime-local" class="time-input" data-tz="Asia/Ho_Chi_Minh">
+                            <div class="time-inputs-group">
+                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
+                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
+                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
+                                <span class="spacer"></span>
+                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
+                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
+                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            </div>
                         </div>
-                        <div class="converter-row">
+                        <!-- Đức -->
+                        <div class="converter-row" data-tz="Europe/Berlin">
                             <label>Đức</label>
-                            <input type="datetime-local" class="time-input" data-tz="Europe/Berlin">
+                            <div class="time-inputs-group">
+                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
+                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
+                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
+                                <span class="spacer"></span>
+                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
+                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
+                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            </div>
                         </div>
-                        <div class="converter-row">
+                        <!-- Massachusetts -->
+                        <div class="converter-row" data-tz="America/New_York">
                             <label>Massachusetts</label>
-                            <input type="datetime-local" class="time-input" data-tz="America/New_York">
+                            <div class="time-inputs-group">
+                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
+                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
+                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
+                                <span class="spacer"></span>
+                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
+                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
+                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            </div>
                         </div>
-                        <div class="converter-row">
+                        <!-- Nevada -->
+                        <div class="converter-row" data-tz="America/Los_Angeles">
                             <label>Nevada</label>
-                            <input type="datetime-local" class="time-input" data-tz="America/Los_Angeles">
+                            <div class="time-inputs-group">
+                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
+                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
+                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
+                                <span class="spacer"></span>
+                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
+                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
+                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            </div>
                         </div>
                     </div>
                 </div>
