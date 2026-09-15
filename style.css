@@ -236,10 +236,15 @@ h3 {
     gap: 1rem;
 }
 
-.converter-row label {
-    width: 150px;
+.converter-row label, .converter-row .region-info {
+    width: 220px;
+    flex-shrink: 0;
     font-weight: 600;
     color: var(--text-main);
+}
+
+.converter-row .time-display {
+    flex-grow: 1;
 }
 
 .time-inputs-group {

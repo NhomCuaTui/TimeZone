@@ -9,9 +9,24 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        /* Sửa lỗi giao diện altInput của Flatpickr bị nhỏ */
+        .flatpickr-input.altInput {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            color: var(--text-main);
+        }
+        .flatpickr-input.altInput:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+    </style>
 </head>
 <body>
     <!-- Màn hình Đăng nhập (Chọn tên) -->
@@ -83,54 +98,45 @@
                     <div class="converter-list">
                         <!-- Việt Nam -->
                         <div class="converter-row" data-tz="Asia/Ho_Chi_Minh">
-                            <label>Việt Nam</label>
-                            <div class="time-inputs-group">
-                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
-                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
-                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
-                                <span class="spacer"></span>
-                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
-                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
-                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            <div class="region-info">
+                                <div class="region-name">Việt Nam</div>
+                                <div class="region-tz">Asia/Ho_Chi_Minh</div>
+                            </div>
+                            <div class="time-display">
+                                <input type="text" class="converter-fp datetime-input" placeholder="Chọn thời gian...">
                             </div>
                         </div>
-                        <!-- Đức -->
+
+                        <!-- Germany -->
                         <div class="converter-row" data-tz="Europe/Berlin">
-                            <label>Đức</label>
-                            <div class="time-inputs-group">
-                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
-                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
-                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
-                                <span class="spacer"></span>
-                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
-                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
-                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            <div class="region-info">
+                                <div class="region-name">Đức</div>
+                                <div class="region-tz">Europe/Berlin</div>
+                            </div>
+                            <div class="time-display">
+                                <input type="text" class="converter-fp datetime-input" placeholder="Chọn thời gian...">
                             </div>
                         </div>
+
                         <!-- Massachusetts -->
                         <div class="converter-row" data-tz="America/New_York">
-                            <label>Massachusetts</label>
-                            <div class="time-inputs-group">
-                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
-                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
-                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
-                                <span class="spacer"></span>
-                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
-                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
-                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            <div class="region-info">
+                                <div class="region-name">Massachusetts, Mỹ</div>
+                                <div class="region-tz">America/New_York (EST/EDT)</div>
+                            </div>
+                            <div class="time-display">
+                                <input type="text" class="converter-fp datetime-input" placeholder="Chọn thời gian...">
                             </div>
                         </div>
+
                         <!-- Nevada -->
                         <div class="converter-row" data-tz="America/Los_Angeles">
-                            <label>Nevada</label>
-                            <div class="time-inputs-group">
-                                <input type="number" class="t-day" placeholder="DD" min="1" max="31"><span>/</span>
-                                <input type="number" class="t-month" placeholder="MM" min="1" max="12"><span>/</span>
-                                <input type="number" class="t-year" placeholder="YYYY" min="2000" max="2100">
-                                <span class="spacer"></span>
-                                <input type="number" class="t-hour" placeholder="HH" min="0" max="23"><span>:</span>
-                                <input type="number" class="t-minute" placeholder="MM" min="0" max="59"><span>:</span>
-                                <input type="number" class="t-second" placeholder="SS" min="0" max="59">
+                            <div class="region-info">
+                                <div class="region-name">Nevada, Mỹ</div>
+                                <div class="region-tz">America/Los_Angeles (PST/PDT)</div>
+                            </div>
+                            <div class="time-display">
+                                <input type="text" class="converter-fp datetime-input" placeholder="Chọn thời gian...">
                             </div>
                         </div>
                     </div>
@@ -164,9 +170,11 @@
                             <button id="btn-refresh-board" class="btn-secondary">🔄 Tải lại</button>
                         </div>
                         
-                        <!-- Biểu đồ Google Charts Timeline (Có thể cuộn ngang) -->
-                        <div style="width: 100%; overflow-x: auto; margin-bottom: 2rem; border: 1px solid var(--border); border-radius: 8px;">
-                            <div id="chart_div" style="width: 100%; min-height: 200px;"></div>
+                        <!-- Biểu đồ Custom Timeline (Cuộn dọc/ngang mượt mà) -->
+                        <div id="custom-timeline-wrapper" style="width: 100%; overflow-x: auto; overflow-y: hidden; margin-bottom: 2rem; border: 1px solid var(--border); border-radius: 8px; background: white;">
+                            <div id="custom-timeline" style="position: relative; min-width: 100%; padding-bottom: 1rem;">
+                                <!-- JS sẽ vẽ trục thời gian và các thanh màu vào đây -->
+                            </div>
                         </div>
 
                         <!-- Danh sách quản lý lịch cá nhân -->
@@ -182,6 +190,6 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script_v3.js?v=5"></script>
 </body>
 </html>
