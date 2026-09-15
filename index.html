@@ -135,10 +135,39 @@
 
             <!-- Tab Planning -->
             <section id="planning" class="tab-content">
-                <div class="planning-placeholder">
-                    <h3>Bảng lên lịch (Sắp ra mắt)</h3>
-                    <p>Phần này sẽ được kết nối với Google Sheets trong giai đoạn tiếp theo.</p>
-                    <p>Trong lúc chờ đợi, bạn hãy trải nghiệm thử chức năng xem giờ và quy đổi giờ ở tab <strong>Global Time</strong> trước nhé!</p>
+                <div class="planning-container">
+                    <!-- Khu vực nhập lịch -->
+                    <div class="card">
+                        <h3>Khai báo thời gian rảnh của bạn</h3>
+                        <p class="subtitle">Lưu ý: Thời gian sẽ tự động được tính theo múi giờ: <strong id="user-tz-display"></strong></p>
+                        
+                        <div class="form-group">
+                            <label>Bắt đầu rảnh từ:</label>
+                            <input type="datetime-local" id="plan-start" class="datetime-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Bận (hết rảnh) lúc:</label>
+                            <input type="datetime-local" id="plan-end" class="datetime-input">
+                        </div>
+                        <button id="btn-submit-plan" class="btn-primary">Lưu lịch rảnh</button>
+                        <p id="plan-status-msg" class="status-msg"></p>
+                    </div>
+
+                    <!-- Khu vực hiển thị bảng chung -->
+                    <div class="card">
+                        <div class="board-header">
+                            <h3>Bảng Lịch Chung Nhóm</h3>
+                            <button id="btn-refresh-board" class="btn-secondary">🔄 Tải lại</button>
+                        </div>
+                        
+                        <!-- Trạng thái chung (Hiển thị điểm giao) -->
+                        <div id="overlap-result" class="overlap-box"></div>
+
+                        <!-- Danh sách từng người -->
+                        <div id="schedule-list" class="schedule-list">
+                            <!-- Dữ liệu sẽ được JavaScript tải vào đây -->
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>

@@ -54,11 +54,26 @@ function showApp() {
     appScreen.classList.add('active');
     currentUserDisplay.textContent = `Xin chào, ${currentUser.name}`;
     
+    // Hiển thị múi giờ cho tab Planning
+    const userTzDisplay = document.getElementById('user-tz-display');
+    if (userTzDisplay) {
+        let regionName = "Việt Nam";
+        if(currentUser.tz === 'Europe/Berlin') regionName = "Đức";
+        if(currentUser.tz === 'America/New_York') regionName = "Massachusetts, Mỹ";
+        if(currentUser.tz === 'America/Los_Angeles') regionName = "Nevada, Mỹ";
+        userTzDisplay.textContent = `${currentUser.tz} (${regionName})`;
+    }
+    
     // Khởi động đồng hồ
     startClocks();
     
     // Đặt giá trị mặc định cho converter
     initConverter();
+    
+    // Tự động tải bảng lịch nếu đang ở tab planning
+    if(document.getElementById('planning').classList.contains('active')){
+        loadScheduleBoard();
+    }
 }
 
 // Khi vừa load trang, kiểm tra xem đã "đăng nhập" trước đó chưa
@@ -84,6 +99,11 @@ tabBtns.forEach(btn => {
         btn.classList.add('active');
         const targetId = btn.dataset.target;
         document.getElementById(targetId).classList.add('active');
+        
+        // Nếu qua tab Planning thì tải lại dữ liệu mới nhất
+        if(targetId === 'planning'){
+            loadScheduleBoard();
+        }
     });
 });
 
@@ -179,3 +199,120 @@ function handleRowChange(sourceRow) {
         }
     });
 }
+
+// ==============================================
+// 5. XỬ LÝ PLANNING & GOOGLE SHEETS
+// ==============================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbztu8jIHgYSBJqJaWKPK3NjYz5_vZiHM2VMDISPF9f_Ncw12hew-3Jqe8MTQPdvBY6pUw/exec';
+
+document.getElementById('btn-submit-plan').addEventListener('click', async () => {
+    const startVal = document.getElementById('plan-start').value;
+    const endVal = document.getElementById('plan-end').value;
+    const msg = document.getElementById('plan-status-msg');
+    
+    if (!startVal || !endVal) {
+        msg.textContent = 'Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc!';
+        msg.className = 'status-msg error';
+        return;
+    }
+    
+    // Ép giờ người dùng nhập về chuẩn UTC (Quốc tế) để đồng bộ mọi quốc gia
+    const startUTC = dayjs.tz(startVal, currentUser.tz).utc().format();
+    const endUTC = dayjs.tz(endVal, currentUser.tz).utc().format();
+    
+    msg.textContent = 'Đang lưu lên Google Sheets...';
+    msg.className = 'status-msg';
+    
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                name: currentUser.name,
+                startTime: startUTC,
+                endTime: endUTC
+            }),
+            // mode: 'no-cors' không đọc được response json, dùng form bình thường fetch mặc định
+        });
+        
+        // Cập nhật giao diện ngay
+        msg.textContent = 'Đã lưu lịch thành công!';
+        msg.className = 'status-msg success';
+        loadScheduleBoard();
+        
+    } catch (err) {
+        msg.textContent = 'Có lỗi xảy ra nhưng dữ liệu có thể đã được lưu (Do chính sách bảo mật Google). Vui lòng Tải lại bảng để kiểm tra.';
+        msg.className = 'status-msg error';
+        loadScheduleBoard(); // Vẫn tải lại để xem đã lên chưa
+    }
+});
+
+async function loadScheduleBoard() {
+    const listEl = document.getElementById('schedule-list');
+    const overlapEl = document.getElementById('overlap-result');
+    
+    listEl.innerHTML = '<p style="text-align:center">Đang tải dữ liệu từ Google Sheets...</p>';
+    overlapEl.innerHTML = '';
+    
+    try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        if (!data || data.length === 0) {
+            listEl.innerHTML = '<p style="text-align:center; color:#6b7280">Chưa có ai đăng ký lịch rảnh.</p>';
+            return;
+        }
+        
+        listEl.innerHTML = '';
+        let maxStart = null;
+        let minEnd = null;
+        
+        data.forEach(item => {
+            // Lấy UTC từ Server, chuyển ngược về múi giờ của người đang xem web
+            const startLocal = dayjs(item.startTime).tz(currentUser.tz);
+            const endLocal = dayjs(item.endTime).tz(currentUser.tz);
+            
+            // Vẽ giao diện từng người
+            const div = document.createElement('div');
+            div.className = 'schedule-item';
+            div.innerHTML = `
+                <div class="s-name">${item.name}</div>
+                <div class="s-time">${startLocal.format('HH:mm - DD/MM/YY')} ➔ ${endLocal.format('HH:mm - DD/MM/YY')}</div>
+            `;
+            listEl.appendChild(div);
+            
+            // Tính toán giao điểm (Overlap)
+            if (!maxStart || dayjs(item.startTime).isAfter(dayjs(maxStart))) {
+                maxStart = item.startTime;
+            }
+            if (!minEnd || dayjs(item.endTime).isBefore(dayjs(minEnd))) {
+                minEnd = item.endTime;
+            }
+        });
+        
+        // Hiển thị kết quả tính toán giao điểm (chỉ khi có >= 2 người)
+        if (data.length > 1) {
+            if (dayjs(maxStart).isBefore(dayjs(minEnd))) {
+                const overlapStartLocal = dayjs(maxStart).tz(currentUser.tz);
+                const overlapEndLocal = dayjs(minEnd).tz(currentUser.tz);
+                overlapEl.innerHTML = `
+                    <div class="overlap-success">
+                        <strong>🎉 Nhóm có điểm giao chung:</strong><br>
+                        Gọi nhau từ: <b>${overlapStartLocal.format('HH:mm - DD/MM/YYYY')}</b><br>
+                        Đến hết lúc: <b>${overlapEndLocal.format('HH:mm - DD/MM/YYYY')}</b>
+                    </div>
+                `;
+            } else {
+                overlapEl.innerHTML = `
+                    <div class="overlap-fail">
+                        <strong>❌ Rất tiếc, các thành viên hiện không có khoảng thời gian nào trùng nhau.</strong>
+                    </div>
+                `;
+            }
+        }
+        
+    } catch (err) {
+        listEl.innerHTML = '<p class="status-msg error">Không thể tải dữ liệu. Lỗi mạng hoặc Google Sheets chưa phản hồi.</p>';
+    }
+}
+
+document.getElementById('btn-refresh-board').addEventListener('click', loadScheduleBoard);
