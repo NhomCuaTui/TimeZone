@@ -144,13 +144,7 @@ function initConverter() {
         if (!input) return;
         
         const targetDayjs = now.tz(tz);
-        const initialFakeDate = new Date(
-            targetDayjs.year(),
-            targetDayjs.month(),
-            targetDayjs.date(),
-            targetDayjs.hour(),
-            targetDayjs.minute()
-        );
+        const initialFakeDate = targetDayjs.format("YYYY-MM-DD HH:mm");
         
         const fp = flatpickr(input, {
             disableMobile: true,
@@ -179,18 +173,13 @@ function initConverter() {
                     converterFpInstances.forEach(item => {
                         if (item.row !== row) {
                             const targetTzDayjs = realDayjs.tz(item.tz);
-                            const fakeDate = new Date(
-                                targetTzDayjs.year(),
-                                targetTzDayjs.month(),
-                                targetTzDayjs.date(),
-                                targetTzDayjs.hour(),
-                                targetTzDayjs.minute()
-                            );
-                            item.fp.setDate(fakeDate, false);
+                            const fakeDateStr = targetTzDayjs.format("YYYY-MM-DD HH:mm");
+                            item.fp.setDate(fakeDateStr, false, "Y-m-d H:i");
                         }
                     });
                 } catch(e) {
                     console.error("Lỗi quy đổi giờ:", e);
+                    alert("LỖI QUY ĐỔI GIỜ: " + e.message);
                 } finally {
                     isUpdating = false;
                 }
