@@ -145,11 +145,11 @@ function initConverter() {
         
         const targetDayjs = now.tz(tz);
         const initialFakeDate = new Date(
-            targetDayjs.get('year'),
-            targetDayjs.get('month'),
-            targetDayjs.get('date'),
-            targetDayjs.get('hour'),
-            targetDayjs.get('minute')
+            targetDayjs.year(),
+            targetDayjs.month(),
+            targetDayjs.date(),
+            targetDayjs.hour(),
+            targetDayjs.minute()
         );
         
         const fp = flatpickr(input, {
@@ -180,11 +180,11 @@ function initConverter() {
                         if (item.row !== row) {
                             const targetTzDayjs = realDayjs.tz(item.tz);
                             const fakeDate = new Date(
-                                targetTzDayjs.get('year'),
-                                targetTzDayjs.get('month'),
-                                targetTzDayjs.get('date'),
-                                targetTzDayjs.get('hour'),
-                                targetTzDayjs.get('minute')
+                                targetTzDayjs.year(),
+                                targetTzDayjs.month(),
+                                targetTzDayjs.date(),
+                                targetTzDayjs.hour(),
+                                targetTzDayjs.minute()
                             );
                             item.fp.setDate(fakeDate, false);
                         }

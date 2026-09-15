@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+</head>
+<body>
+    <script>
+        try {
+            dayjs.extend(window.dayjs_plugin_utc);
+            dayjs.extend(window.dayjs_plugin_timezone);
+            const d = dayjs().tz("Asia/Ho_Chi_Minh");
+            const y = d.get('year');
+            const y2 = d.year();
+            console.log("SUCCESS", y, y2);
+            document.body.innerHTML += "SUCCESS " + y + " " + y2;
+        } catch(e) {
+            console.error(e);
+            document.body.innerHTML += "ERROR: " + e.message;
+        }
+    </script>
+</body>
+</html>
