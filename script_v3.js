@@ -6,7 +6,6 @@ dayjs.extend(window.dayjs_plugin_timezone);
 let currentUser = null;
 let clockInterval = null;
 
-// Khai báo các múi giờ tương ứng với 4 khu vực
 const timezones = {
     'vn': 'Asia/Ho_Chi_Minh',
     'de': 'Europe/Berlin',
@@ -14,16 +13,12 @@ const timezones = {
     'nv': 'America/Los_Angeles'
 };
 
-// ==============================================
-// 1. XỬ LÝ ĐĂNG NHẬP (CHỌN TÊN)
-// ==============================================
 const loginScreen = document.getElementById('login-screen');
 const appScreen = document.getElementById('app-screen');
 const userBtns = document.querySelectorAll('.user-btn');
 const currentUserDisplay = document.getElementById('current-user-display');
 const logoutBtn = document.getElementById('logout-btn');
 
-// Bắt sự kiện khi click vào tên
 userBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const name = btn.dataset.name;
@@ -31,7 +26,6 @@ userBtns.forEach(btn => {
         
         currentUser = { name, tz };
         localStorage.setItem('timeSyncUser', JSON.stringify(currentUser));
-        
         showApp();
     });
 });
@@ -70,9 +64,12 @@ function showApp() {
     }
 }
 
-// Khởi tạo bộ chọn ngày giờ cho tab Planning (chỉ chạy 1 lần khi script tải)
-flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
-flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
+try {
+    flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+    flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+} catch(e) {
+    console.error(e);
+}
 
 const savedUser = localStorage.getItem('timeSyncUser');
 if (savedUser) {
@@ -84,9 +81,6 @@ if (savedUser) {
     }
 }
 
-// ==============================================
-// 2. XỬ LÝ CHUYỂN TAB
-// ==============================================
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
@@ -105,9 +99,6 @@ tabBtns.forEach(btn => {
     });
 });
 
-// ==============================================
-// 3. XỬ LÝ GLOBAL TIME
-// ==============================================
 function startClocks() {
     updateClocks();
     clockInterval = setInterval(updateClocks, 1000);
@@ -144,49 +135,54 @@ function initConverter() {
         if (!input) return;
         
         const targetDayjs = now.tz(tz);
-        const initialFakeDate = targetDayjs.format("YYYY-MM-DD HH:mm");
+        const initialFakeDateStr = targetDayjs.format("YYYY-MM-DD HH:mm");
         
-        const fp = flatpickr(input, {
-            disableMobile: true,
-            enableTime: true,
-            dateFormat: "Y-m-d H:i",
-            time_24hr: true,
-            altInput: true,
-            altInputClass: 'flatpickr-input altInput',
-            altFormat: "H:i - d/m/Y",
-            defaultDate: initialFakeDate,
-            onChange: function(selectedDates, dateStr, instance) {
-                if (isUpdating || selectedDates.length === 0) return;
-                isUpdating = true;
-                
-                try {
-                    const localDate = selectedDates[0];
-                    const yyyy = localDate.getFullYear();
-                    const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-                    const dd = String(localDate.getDate()).padStart(2, '0');
-                    const hh = String(localDate.getHours()).padStart(2, '0');
-                    const min = String(localDate.getMinutes()).padStart(2, '0');
-
-                    const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-                    const realDayjs = dayjs(isoString).tz(tz);
+        try {
+            const fp = flatpickr(input, {
+                disableMobile: true,
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                time_24hr: true,
+                defaultDate: initialFakeDateStr,
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (isUpdating || selectedDates.length === 0) return;
+                    isUpdating = true;
                     
-                    converterFpInstances.forEach(item => {
-                        if (item.row !== row) {
-                            const targetTzDayjs = realDayjs.tz(item.tz);
-                            const fakeDateStr = targetTzDayjs.format("YYYY-MM-DD HH:mm");
-                            item.fp.setDate(fakeDateStr, false, "Y-m-d H:i");
-                        }
-                    });
-                } catch(e) {
-                    console.error("Lỗi quy đổi giờ:", e);
-                    alert("LỖI QUY ĐỔI GIỜ: " + e.message);
-                } finally {
-                    isUpdating = false;
+                    try {
+                        const localDate = selectedDates[0];
+                        const yyyy = localDate.getFullYear();
+                        const mm = String(localDate.getMonth() + 1).padStart(2, '0');
+                        const dd = String(localDate.getDate()).padStart(2, '0');
+                        const hh = String(localDate.getHours()).padStart(2, '0');
+                        const min = String(localDate.getMinutes()).padStart(2, '0');
+
+                        const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+                        const realDayjs = dayjs(isoString).tz(tz);
+                        
+                        converterFpInstances.forEach(item => {
+                            if (item.row !== row) {
+                                const targetTzDayjs = realDayjs.tz(item.tz);
+                                const fakeDateStr = targetTzDayjs.format("YYYY-MM-DD HH:mm");
+                                item.fp.setDate(fakeDateStr, false, "Y-m-d H:i");
+                            }
+                        });
+                    } catch(e) {
+                        console.error("Lỗi quy đổi giờ:", e);
+                        alert("LỖI QUY ĐỔI GIỜ: " + e.message);
+                    } finally {
+                        isUpdating = false;
+                    }
                 }
-            }
-        });
-        
-        converterFpInstances.push({ tz: tz, fp: fp, row: row });
+            });
+            
+            // Force explicit set date to guarantee initialization rendering
+            fp.setDate(initialFakeDateStr, false, "Y-m-d H:i");
+            
+            converterFpInstances.push({ tz: tz, fp: fp, row: row });
+        } catch (e) {
+            console.error("Flatpickr Error: ", e);
+            alert("Lỗi tải lịch: " + e.message);
+        }
     });
 }
 
