@@ -70,6 +70,10 @@ function showApp() {
     // Đặt giá trị mặc định cho converter
     initConverter();
     
+    // Khởi tạo bộ chọn ngày giờ 24h cho phần Planning
+    flatpickr("#plan-start", { enableTime: true, dateFormat: "Y-m-d\\TH:i", time_24hr: true, altInput: true, altFormat: "d/m/Y H:i" });
+    flatpickr("#plan-end", { enableTime: true, dateFormat: "Y-m-d\\TH:i", time_24hr: true, altInput: true, altFormat: "d/m/Y H:i" });
+    
     // Tự động tải bảng lịch nếu đang ở tab planning
     if(document.getElementById('planning').classList.contains('active')){
         loadScheduleBoard();
@@ -320,6 +324,9 @@ async function loadScheduleBoard() {
             const chartRows = [];
             const activeColors = [];
             
+            let chartMinStart = null;
+            let chartMaxEnd = null;
+            
             // Nhóm màu sắc theo những người thực sự có lịch để biểu đồ gán đúng màu
             const uniqueNamesInChart = [...new Set(futureData.map(d => d.name))];
             uniqueNamesInChart.forEach(name => {
@@ -328,16 +335,28 @@ async function loadScheduleBoard() {
 
             futureData.forEach(item => {
                 // Parse UTC và chuyển về giờ địa phương của người xem để hiển thị lên trục tọa độ biểu đồ
-                const startLocal = dayjs(item.startTime).tz(currentUser.tz).toDate();
-                const endLocal = dayjs(item.endTime).tz(currentUser.tz).toDate();
+                const startLocal = dayjs(item.startTime).tz(currentUser.tz);
+                const endLocal = dayjs(item.endTime).tz(currentUser.tz);
+                
+                if(!chartMinStart || startLocal.isBefore(chartMinStart)) chartMinStart = startLocal;
+                if(!chartMaxEnd || endLocal.isAfter(chartMaxEnd)) chartMaxEnd = endLocal;
                 
                 chartRows.push([
                     item.name,
                     item.name, // Dùng tên làm label tooltip
-                    startLocal,
-                    endLocal
+                    startLocal.toDate(),
+                    endLocal.toDate()
                 ]);
             });
+            
+            // Tính toán chiều rộng biểu đồ dựa trên khoảng thời gian để cho phép cuộn ngang
+            if (chartMinStart && chartMaxEnd) {
+                const hoursDiff = chartMaxEnd.diff(chartMinStart, 'hour', true);
+                // Cứ mỗi 1 giờ sẽ chiếm 60px chiều ngang. Nếu ít quá thì lấy chiều rộng tối thiểu bằng khung chứa.
+                const minContainerWidth = document.querySelector('.board-header').offsetWidth;
+                const dynamicWidth = Math.max(minContainerWidth, hoursDiff * 80);
+                chartDiv.style.width = dynamicWidth + 'px';
+            }
             
             dataTable.addRows(chartRows);
             

@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body>
     <!-- Màn hình Đăng nhập (Chọn tên) -->
@@ -145,11 +147,11 @@
                         
                         <div class="form-group">
                             <label>Bắt đầu rảnh từ:</label>
-                            <input type="datetime-local" id="plan-start" class="datetime-input">
+                            <input type="text" id="plan-start" class="datetime-input" placeholder="Chọn ngày giờ...">
                         </div>
                         <div class="form-group">
                             <label>Bận (hết rảnh) lúc:</label>
-                            <input type="datetime-local" id="plan-end" class="datetime-input">
+                            <input type="text" id="plan-end" class="datetime-input" placeholder="Chọn ngày giờ...">
                         </div>
                         <button id="btn-submit-plan" class="btn-primary">Lưu lịch rảnh</button>
                         <p id="plan-status-msg" class="status-msg"></p>
@@ -162,8 +164,10 @@
                             <button id="btn-refresh-board" class="btn-secondary">🔄 Tải lại</button>
                         </div>
                         
-                        <!-- Biểu đồ Google Charts Timeline -->
-                        <div id="chart_div" style="width: 100%; min-height: 200px; margin-bottom: 2rem; overflow-x: auto;"></div>
+                        <!-- Biểu đồ Google Charts Timeline (Có thể cuộn ngang) -->
+                        <div style="width: 100%; overflow-x: auto; margin-bottom: 2rem; border: 1px solid var(--border); border-radius: 8px;">
+                            <div id="chart_div" style="width: 100%; min-height: 200px;"></div>
+                        </div>
 
                         <!-- Danh sách quản lý lịch cá nhân -->
                         <div class="my-schedules-container" style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
