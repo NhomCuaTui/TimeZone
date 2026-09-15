@@ -71,8 +71,8 @@ function showApp() {
 }
 
 // Khởi tạo bộ chọn ngày giờ cho tab Planning (chỉ chạy 1 lần khi script tải)
-flatpickr("#plan-start", { disableMobile: "true", enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
-flatpickr("#plan-end", { disableMobile: "true", enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
+flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
+flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
 
 const savedUser = localStorage.getItem('timeSyncUser');
 if (savedUser) {
@@ -153,7 +153,7 @@ function initConverter() {
         );
         
         const fp = flatpickr(input, {
-            disableMobile: "true",
+            disableMobile: true,
             enableTime: true,
             dateFormat: "Y-m-d H:i",
             time_24hr: true,
@@ -174,7 +174,6 @@ function initConverter() {
                     const min = String(localDate.getMinutes()).padStart(2, '0');
 
                     const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-                    // SỬA LỖI: Gọi dayjs(chuỗi).tz(múi_giờ) thay vì dayjs.tz(chuỗi, múi_giờ)
                     const realDayjs = dayjs(isoString).tz(tz);
                     
                     converterFpInstances.forEach(item => {
@@ -228,7 +227,6 @@ document.getElementById('btn-submit-plan').addEventListener('click', async () =>
         const startIso = startVal.replace(' ', 'T') + ':00';
         const endIso = endVal.replace(' ', 'T') + ':00';
         
-        // SỬA LỖI: Gọi dayjs(chuỗi).tz(múi_giờ) thay vì dayjs.tz(chuỗi, múi_giờ)
         const startObj = dayjs(startIso).tz(currentUser.tz);
         const endObj = dayjs(endIso).tz(currentUser.tz);
         
