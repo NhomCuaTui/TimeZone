@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Sync Group</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Day.js and Plugins để tính toán thời gian tự động chuẩn xác -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+</head>
+<body>
+    <!-- Màn hình Đăng nhập (Chọn tên) -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <h1>Bạn là ai?</h1>
+            <p>Chọn tên của bạn để hệ thống tự động đồng bộ múi giờ.</p>
+            <div class="user-grid">
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Trung">Trung (VN)</button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Q.Minh">Q.Minh (VN)</button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="An">An (VN)</button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Hiếu">Hiếu (VN)</button>
+                <button class="user-btn" data-tz="Europe/Berlin" data-name="G.Minh">G.Minh (Đức)</button>
+                <button class="user-btn" data-tz="America/New_York" data-name="Bửu">Bửu (MA, Mỹ)</button>
+                <button class="user-btn" data-tz="America/Los_Angeles" data-name="Khang">Khang (NV, Mỹ)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Màn hình Chính -->
+    <div id="app-screen" class="screen">
+        <header>
+            <div class="header-content">
+                <h2>Time Sync</h2>
+                <div class="user-info">
+                    <span id="current-user-display">Xin chào, ...</span>
+                    <button id="logout-btn">Đổi người</button>
+                </div>
+            </div>
+            <nav class="tabs">
+                <button class="tab-btn active" data-target="global-time">Global Time</button>
+                <button class="tab-btn" data-target="planning">Planning (Lên lịch)</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Tab Global Time -->
+            <section id="global-time" class="tab-content active">
+                <div class="clocks-container">
+                    <h3>Giờ hiện tại</h3>
+                    <div class="clocks-grid">
+                        <div class="clock-card" id="clock-vn">
+                            <div class="region">Việt Nam</div>
+                            <div class="time">--:--:--</div>
+                            <div class="date">--/--/----</div>
+                        </div>
+                        <div class="clock-card" id="clock-de">
+                            <div class="region">Đức</div>
+                            <div class="time">--:--:--</div>
+                            <div class="date">--/--/----</div>
+                        </div>
+                        <div class="clock-card" id="clock-ma">
+                            <div class="region">Massachusetts (Mỹ)</div>
+                            <div class="time">--:--:--</div>
+                            <div class="date">--/--/----</div>
+                        </div>
+                        <div class="clock-card" id="clock-nv">
+                            <div class="region">Nevada (Mỹ)</div>
+                            <div class="time">--:--:--</div>
+                            <div class="date">--/--/----</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="converter-container">
+                    <h3>Time Converter (Chuyển đổi giờ)</h3>
+                    <p class="subtitle">Mẹo: Chọn ngày & giờ ở một nơi, hệ thống sẽ tự động quy đổi cho 3 nơi còn lại!</p>
+                    <div class="converter-list">
+                        <div class="converter-row">
+                            <label>Việt Nam</label>
+                            <input type="datetime-local" class="time-input" data-tz="Asia/Ho_Chi_Minh">
+                        </div>
+                        <div class="converter-row">
+                            <label>Đức</label>
+                            <input type="datetime-local" class="time-input" data-tz="Europe/Berlin">
+                        </div>
+                        <div class="converter-row">
+                            <label>Massachusetts</label>
+                            <input type="datetime-local" class="time-input" data-tz="America/New_York">
+                        </div>
+                        <div class="converter-row">
+                            <label>Nevada</label>
+                            <input type="datetime-local" class="time-input" data-tz="America/Los_Angeles">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab Planning -->
+            <section id="planning" class="tab-content">
+                <div class="planning-placeholder">
+                    <h3>Bảng lên lịch (Sắp ra mắt)</h3>
+                    <p>Phần này sẽ được kết nối với Google Sheets trong giai đoạn tiếp theo.</p>
+                    <p>Trong lúc chờ đợi, bạn hãy trải nghiệm thử chức năng xem giờ và quy đổi giờ ở tab <strong>Global Time</strong> trước nhé!</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
