@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
 <body>
     <!-- Màn hình Đăng nhập (Chọn tên) -->
@@ -21,6 +22,7 @@
                 <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Q.Minh">Q.Minh (VN)</button>
                 <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="An">An (VN)</button>
                 <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Hiếu">Hiếu (VN)</button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Đạt">Đạt (VN)</button>
                 <button class="user-btn" data-tz="Europe/Berlin" data-name="G.Minh">G.Minh (Đức)</button>
                 <button class="user-btn" data-tz="America/New_York" data-name="Bửu">Bửu (MA, Mỹ)</button>
                 <button class="user-btn" data-tz="America/Los_Angeles" data-name="Khang">Khang (NV, Mỹ)</button>
@@ -156,16 +158,19 @@
                     <!-- Khu vực hiển thị bảng chung -->
                     <div class="card">
                         <div class="board-header">
-                            <h3>Bảng Lịch Chung Nhóm</h3>
+                            <h3>Biểu đồ thời gian rảnh chung</h3>
                             <button id="btn-refresh-board" class="btn-secondary">🔄 Tải lại</button>
                         </div>
                         
-                        <!-- Trạng thái chung (Hiển thị điểm giao) -->
-                        <div id="overlap-result" class="overlap-box"></div>
+                        <!-- Biểu đồ Google Charts Timeline -->
+                        <div id="chart_div" style="width: 100%; min-height: 200px; margin-bottom: 2rem; overflow-x: auto;"></div>
 
-                        <!-- Danh sách từng người -->
-                        <div id="schedule-list" class="schedule-list">
-                            <!-- Dữ liệu sẽ được JavaScript tải vào đây -->
+                        <!-- Danh sách quản lý lịch cá nhân -->
+                        <div class="my-schedules-container" style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                            <h4 style="margin-bottom: 1rem; color: var(--primary);">Lịch bạn đã đăng ký (Dùng để Xóa/Sửa)</h4>
+                            <div id="my-schedule-list" class="schedule-list">
+                                <!-- Dữ liệu sẽ được JavaScript tải vào đây -->
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -203,7 +203,17 @@ function handleRowChange(sourceRow) {
 // ==============================================
 // 5. XỬ LÝ PLANNING & GOOGLE SHEETS
 // ==============================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbztu8jIHgYSBJqJaWKPK3NjYz5_vZiHM2VMDISPF9f_Ncw12hew-3Jqe8MTQPdvBY6pUw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw9_obYD9-zOhE_YHlbjFK-WCLATgd4o0xghVz1RrmFzJCAHmaYE4ZZ_-CdRbgrL23T2Q/exec';
+
+// Tải thư viện Google Charts
+google.charts.load('current', {'packages':['timeline']});
+
+// Màu sắc cố định cho từng người
+const userColors = {
+    'Trung': '#ef4444', 'Q.Minh': '#f97316', 'An': '#eab308', 
+    'Hiếu': '#22c55e', 'Đạt': '#14b8a6', 'G.Minh': '#3b82f6', 
+    'Bửu': '#8b5cf6', 'Khang': '#ec4899'
+};
 
 document.getElementById('btn-submit-plan').addEventListener('click', async () => {
     const startVal = document.getElementById('plan-start').value;
@@ -216,102 +226,161 @@ document.getElementById('btn-submit-plan').addEventListener('click', async () =>
         return;
     }
     
-    // Ép giờ người dùng nhập về chuẩn UTC (Quốc tế) để đồng bộ mọi quốc gia
-    const startUTC = dayjs.tz(startVal, currentUser.tz).utc().format();
-    const endUTC = dayjs.tz(endVal, currentUser.tz).utc().format();
+    // Kiểm tra giờ kết thúc phải sau giờ bắt đầu
+    const startObj = dayjs.tz(startVal, currentUser.tz);
+    const endObj = dayjs.tz(endVal, currentUser.tz);
+    if(endObj.isBefore(startObj)) {
+        msg.textContent = 'Giờ kết thúc phải sau giờ bắt đầu!';
+        msg.className = 'status-msg error';
+        return;
+    }
+    
+    const startUTC = startObj.utc().format();
+    const endUTC = endObj.utc().format();
     
     msg.textContent = 'Đang lưu lên Google Sheets...';
     msg.className = 'status-msg';
     
     try {
-        const response = await fetch(API_URL, {
+        await fetch(API_URL, {
             method: 'POST',
             body: JSON.stringify({
+                action: 'add',
                 name: currentUser.name,
                 startTime: startUTC,
                 endTime: endUTC
-            }),
-            // mode: 'no-cors' không đọc được response json, dùng form bình thường fetch mặc định
+            })
         });
         
-        // Cập nhật giao diện ngay
         msg.textContent = 'Đã lưu lịch thành công!';
         msg.className = 'status-msg success';
         loadScheduleBoard();
         
     } catch (err) {
-        msg.textContent = 'Có lỗi xảy ra nhưng dữ liệu có thể đã được lưu (Do chính sách bảo mật Google). Vui lòng Tải lại bảng để kiểm tra.';
+        msg.textContent = 'Đã gửi yêu cầu lưu, vui lòng Tải lại bảng để kiểm tra.';
         msg.className = 'status-msg error';
-        loadScheduleBoard(); // Vẫn tải lại để xem đã lên chưa
+        loadScheduleBoard();
     }
 });
 
-async function loadScheduleBoard() {
-    const listEl = document.getElementById('schedule-list');
-    const overlapEl = document.getElementById('overlap-result');
+async function deleteSchedule(id) {
+    if(!confirm('Bạn có chắc muốn xóa khoảng thời gian này?')) return;
     
-    listEl.innerHTML = '<p style="text-align:center">Đang tải dữ liệu từ Google Sheets...</p>';
-    overlapEl.innerHTML = '';
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'delete',
+                name: currentUser.name,
+                id: id
+            })
+        });
+        loadScheduleBoard();
+    } catch(err) {
+        alert('Có lỗi xảy ra khi xóa!');
+    }
+}
+
+// Bắt buộc Google Charts render vào window object để gọi từ HTML nếu cần
+window.deleteSchedule = deleteSchedule;
+
+async function loadScheduleBoard() {
+    const myListEl = document.getElementById('my-schedule-list');
+    const chartDiv = document.getElementById('chart_div');
+    
+    myListEl.innerHTML = '<p>Đang tải dữ liệu...</p>';
+    chartDiv.innerHTML = '<p style="text-align:center;">Đang vẽ biểu đồ...</p>';
     
     try {
         const response = await fetch(API_URL);
-        const data = await response.json();
+        const rawData = await response.json();
         
-        if (!data || data.length === 0) {
-            listEl.innerHTML = '<p style="text-align:center; color:#6b7280">Chưa có ai đăng ký lịch rảnh.</p>';
+        // Lọc bỏ các lịch trong quá khứ (EndTime < Now)
+        const nowUTC = dayjs().utc();
+        const futureData = rawData.filter(item => {
+            return dayjs(item.endTime).isAfter(nowUTC);
+        });
+        
+        if (!futureData || futureData.length === 0) {
+            chartDiv.innerHTML = '<p style="text-align:center; color:#6b7280; padding:2rem 0;">Chưa có ai đăng ký lịch rảnh trong tương lai.</p>';
+            myListEl.innerHTML = '<p style="color:#6b7280;">Bạn chưa có lịch rảnh nào.</p>';
             return;
         }
         
-        listEl.innerHTML = '';
-        let maxStart = null;
-        let minEnd = null;
-        
-        data.forEach(item => {
-            // Lấy UTC từ Server, chuyển ngược về múi giờ của người đang xem web
-            const startLocal = dayjs(item.startTime).tz(currentUser.tz);
-            const endLocal = dayjs(item.endTime).tz(currentUser.tz);
+        // --- 1. VẼ BIỂU ĐỒ GOOGLE CHARTS ---
+        google.charts.setOnLoadCallback(() => {
+            const chart = new google.visualization.Timeline(chartDiv);
+            const dataTable = new google.visualization.DataTable();
             
-            // Vẽ giao diện từng người
-            const div = document.createElement('div');
-            div.className = 'schedule-item';
-            div.innerHTML = `
-                <div class="s-name">${item.name}</div>
-                <div class="s-time">${startLocal.format('HH:mm - DD/MM/YY')} ➔ ${endLocal.format('HH:mm - DD/MM/YY')}</div>
-            `;
-            listEl.appendChild(div);
+            dataTable.addColumn({ type: 'string', id: 'Tên' });
+            dataTable.addColumn({ type: 'string', id: 'Màu' }); // Dummy cột để custom color dễ hơn nếu cần, nhưng Timeline map theo Tên
+            dataTable.addColumn({ type: 'date', id: 'Start' });
+            dataTable.addColumn({ type: 'date', id: 'End' });
             
-            // Tính toán giao điểm (Overlap)
-            if (!maxStart || dayjs(item.startTime).isAfter(dayjs(maxStart))) {
-                maxStart = item.startTime;
-            }
-            if (!minEnd || dayjs(item.endTime).isBefore(dayjs(minEnd))) {
-                minEnd = item.endTime;
-            }
+            const chartRows = [];
+            const activeColors = [];
+            
+            // Nhóm màu sắc theo những người thực sự có lịch để biểu đồ gán đúng màu
+            const uniqueNamesInChart = [...new Set(futureData.map(d => d.name))];
+            uniqueNamesInChart.forEach(name => {
+                activeColors.push(userColors[name] || '#9ca3af'); // Màu mặc định xám nếu thiếu
+            });
+
+            futureData.forEach(item => {
+                // Parse UTC và chuyển về giờ địa phương của người xem để hiển thị lên trục tọa độ biểu đồ
+                const startLocal = dayjs(item.startTime).tz(currentUser.tz).toDate();
+                const endLocal = dayjs(item.endTime).tz(currentUser.tz).toDate();
+                
+                chartRows.push([
+                    item.name,
+                    item.name, // Dùng tên làm label tooltip
+                    startLocal,
+                    endLocal
+                ]);
+            });
+            
+            dataTable.addRows(chartRows);
+            
+            const options = {
+                timeline: { showRowLabels: true },
+                colors: activeColors,
+                hAxis: {
+                    format: 'HH:mm (dd/MM)'
+                },
+                height: (uniqueNamesInChart.length * 50) + 70 // Tự động co giãn chiều cao
+            };
+            
+            chart.draw(dataTable, options);
         });
         
-        // Hiển thị kết quả tính toán giao điểm (chỉ khi có >= 2 người)
-        if (data.length > 1) {
-            if (dayjs(maxStart).isBefore(dayjs(minEnd))) {
-                const overlapStartLocal = dayjs(maxStart).tz(currentUser.tz);
-                const overlapEndLocal = dayjs(minEnd).tz(currentUser.tz);
-                overlapEl.innerHTML = `
-                    <div class="overlap-success">
-                        <strong>🎉 Nhóm có điểm giao chung:</strong><br>
-                        Gọi nhau từ: <b>${overlapStartLocal.format('HH:mm - DD/MM/YYYY')}</b><br>
-                        Đến hết lúc: <b>${overlapEndLocal.format('HH:mm - DD/MM/YYYY')}</b>
+        // --- 2. RENDER DANH SÁCH LỊCH CỦA CÁ NHÂN (ĐỂ XÓA) ---
+        const myData = futureData.filter(item => item.name === currentUser.name);
+        myListEl.innerHTML = '';
+        
+        if (myData.length === 0) {
+            myListEl.innerHTML = '<p style="color:#6b7280;">Bạn chưa có lịch rảnh nào.</p>';
+        } else {
+            // Sort theo thời gian bắt đầu
+            myData.sort((a,b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
+            
+            myData.forEach(item => {
+                const startLocal = dayjs(item.startTime).tz(currentUser.tz);
+                const endLocal = dayjs(item.endTime).tz(currentUser.tz);
+                
+                const div = document.createElement('div');
+                div.className = 'schedule-item';
+                div.innerHTML = `
+                    <div class="s-time" style="font-weight: 500;">
+                        ${startLocal.format('HH:mm [ngày] DD/MM')} &nbsp; ➔ &nbsp; ${endLocal.format('HH:mm [ngày] DD/MM')}
                     </div>
+                    <button class="btn-danger" onclick="deleteSchedule('${item.id}')">Xóa</button>
                 `;
-            } else {
-                overlapEl.innerHTML = `
-                    <div class="overlap-fail">
-                        <strong>❌ Rất tiếc, các thành viên hiện không có khoảng thời gian nào trùng nhau.</strong>
-                    </div>
-                `;
-            }
+                myListEl.appendChild(div);
+            });
         }
         
     } catch (err) {
-        listEl.innerHTML = '<p class="status-msg error">Không thể tải dữ liệu. Lỗi mạng hoặc Google Sheets chưa phản hồi.</p>';
+        chartDiv.innerHTML = '<p class="status-msg error">Lỗi tải dữ liệu. Hãy kiểm tra kết nối mạng.</p>';
     }
 }
 

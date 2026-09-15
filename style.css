@@ -436,6 +436,21 @@ h3 {
     font-size: 0.95rem;
 }
 
+.btn-danger {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
 @media (max-width: 600px) {
     .schedule-item {
         flex-direction: column;
