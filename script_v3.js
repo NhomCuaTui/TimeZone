@@ -64,12 +64,70 @@ function showApp() {
     }
 }
 
-// Khởi tạo bộ chọn ngày giờ cho tab Planning (chỉ chạy 1 lần khi script tải)
+// ==============================================
+// 3. KHỞI TẠO TẤT CẢ FLATPICKR GLOBALLY (CHỈ 1 LẦN)
+// ==============================================
+window.isUpdatingConverter = false;
 try {
+    // 1. Planning Flatpickrs
     flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
     flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
+    
+    // 2. Converter Flatpickrs (GIỐNG HỆT PLANNING)
+    flatpickr(".converter-fp", {
+        disableMobile: true,
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        altInput: true,
+        altInputClass: 'flatpickr-input altInput',
+        altFormat: "d/m/Y H:i",
+        onChange: function(selectedDates, dateStr, instance) {
+            if (window.isUpdatingConverter || selectedDates.length === 0) return;
+            window.isUpdatingConverter = true;
+            
+            try {
+                const input = instance.element;
+                const row = input.closest('.converter-row');
+                const tz = row.dataset.tz;
+                
+                const localDate = selectedDates[0];
+                const yyyy = localDate.getFullYear();
+                const mm = String(localDate.getMonth() + 1).padStart(2, '0');
+                const dd = String(localDate.getDate()).padStart(2, '0');
+                const hh = String(localDate.getHours()).padStart(2, '0');
+                const min = String(localDate.getMinutes()).padStart(2, '0');
+
+                const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+                const realDayjs = dayjs(isoString).tz(tz);
+                
+                document.querySelectorAll('.converter-row').forEach(otherRow => {
+                    if (otherRow !== row) {
+                        const otherTz = otherRow.dataset.tz;
+                        const otherInput = otherRow.querySelector('.converter-fp');
+                        if (otherInput && otherInput._flatpickr) {
+                            const targetTzDayjs = realDayjs.tz(otherTz);
+                            const otherFakeDate = new Date(
+                                parseInt(targetTzDayjs.format("YYYY"), 10),
+                                parseInt(targetTzDayjs.format("MM"), 10) - 1,
+                                parseInt(targetTzDayjs.format("DD"), 10),
+                                parseInt(targetTzDayjs.format("HH"), 10),
+                                parseInt(targetTzDayjs.format("mm"), 10)
+                            );
+                            otherInput._flatpickr.setDate(otherFakeDate, false);
+                        }
+                    }
+                });
+            } catch(e) {
+                console.error("Lỗi quy đổi giờ:", e);
+                alert("LỖI QUY ĐỔI GIỜ: " + e.message);
+            } finally {
+                window.isUpdatingConverter = false;
+            }
+        }
+    });
 } catch(e) {
-    console.error("Lỗi Planning Flatpickr:", e);
+    console.error("Lỗi khởi tạo Flatpickr:", e);
 }
 
 const savedUser = localStorage.getItem('timeSyncUser');
@@ -120,83 +178,35 @@ function updateClocks() {
 }
 
 // ==============================================
-// 4. XỬ LÝ TIME CONVERTER (Dùng lại Flatpickr nguyên mẫu)
+// 4. XỬ LÝ TIME CONVERTER (CHỈ SET VALUE, KHÔNG INIT LẠI)
 // ==============================================
-let converterFpInstances = [];
-
 function initConverter() {
-    converterFpInstances.forEach(item => { if(item.fp && item.fp.destroy) item.fp.destroy(); });
-    converterFpInstances = [];
+    window.isUpdatingConverter = true;
     const now = dayjs();
-    let isUpdating = false;
     
     document.querySelectorAll('.converter-row').forEach(row => {
         const tz = row.dataset.tz;
         const input = row.querySelector('.converter-fp');
-        if (!input) return;
         
-        try {
-            const targetDayjs = now.tz(tz);
-            const fakeDate = new Date(
-                parseInt(targetDayjs.format("YYYY"), 10),
-                parseInt(targetDayjs.format("MM"), 10) - 1,
-                parseInt(targetDayjs.format("DD"), 10),
-                parseInt(targetDayjs.format("HH"), 10),
-                parseInt(targetDayjs.format("mm"), 10)
-            );
-            
-            const fp = flatpickr(input, {
-                disableMobile: true,
-                enableTime: true,
-                dateFormat: "Y-m-d H:i",
-                time_24hr: true,
-                altInput: true,
-                altInputClass: 'flatpickr-input altInput',
-                altFormat: "d/m/Y H:i",
-                defaultDate: fakeDate,
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (isUpdating || selectedDates.length === 0) return;
-                    isUpdating = true;
-                    
-                    try {
-                        const localDate = selectedDates[0];
-                        const yyyy = localDate.getFullYear();
-                        const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-                        const dd = String(localDate.getDate()).padStart(2, '0');
-                        const hh = String(localDate.getHours()).padStart(2, '0');
-                        const min = String(localDate.getMinutes()).padStart(2, '0');
-
-                        const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-                        const realDayjs = dayjs(isoString).tz(tz);
-                        
-                        converterFpInstances.forEach(item => {
-                            if (item.row !== row) {
-                                const targetTzDayjs = realDayjs.tz(item.tz);
-                                const otherFakeDate = new Date(
-                                    parseInt(targetTzDayjs.format("YYYY"), 10),
-                                    parseInt(targetTzDayjs.format("MM"), 10) - 1,
-                                    parseInt(targetTzDayjs.format("DD"), 10),
-                                    parseInt(targetTzDayjs.format("HH"), 10),
-                                    parseInt(targetTzDayjs.format("mm"), 10)
-                                );
-                                item.fp.setDate(otherFakeDate, false);
-                            }
-                        });
-                    } catch(e) {
-                        console.error("Lỗi quy đổi giờ:", e);
-                        alert("LỖI QUY ĐỔI GIỜ: " + e.message);
-                    } finally {
-                        isUpdating = false;
-                    }
-                }
-            });
-            
-            converterFpInstances.push({ tz: tz, fp: fp, row: row });
-        } catch (e) {
-            console.error("Flatpickr Error: ", e);
-            alert("LỖI CONVERTER: " + e.message);
+        if (input && input._flatpickr) {
+            try {
+                const targetDayjs = now.tz(tz);
+                const fakeDate = new Date(
+                    parseInt(targetDayjs.format("YYYY"), 10),
+                    parseInt(targetDayjs.format("MM"), 10) - 1,
+                    parseInt(targetDayjs.format("DD"), 10),
+                    parseInt(targetDayjs.format("HH"), 10),
+                    parseInt(targetDayjs.format("mm"), 10)
+                );
+                
+                input._flatpickr.setDate(fakeDate, false);
+            } catch (e) {
+                console.error("Error setting date:", e);
+            }
         }
     });
+    
+    window.isUpdatingConverter = false;
 }
 
 // ==============================================
