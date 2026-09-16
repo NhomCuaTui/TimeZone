@@ -1,8 +1,110 @@
-// Cấu hình Day.js để dùng plugin múi giờ
+// ==============================================
+// 1. CẤU HÌNH DAY.JS & PLUGINS
+// ==============================================
 dayjs.extend(window.dayjs_plugin_utc);
 dayjs.extend(window.dayjs_plugin_timezone);
 
-// Biến lưu trữ người dùng hiện tại
+// ==============================================
+// 2. THEME SWITCHER (DARK MODE / LIGHT MODE)
+// ==============================================
+function initTheme() {
+    const savedTheme = localStorage.getItem('timeSync_theme');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(theme);
+}
+
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('timeSync_theme', theme);
+    const icon = theme === 'dark' ? '☀️' : '🌙';
+    document.querySelectorAll('.theme-toggle-btn .theme-icon').forEach(el => el.textContent = icon);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    setTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+const btnThemeLogin = document.getElementById('theme-toggle-login');
+if (btnThemeLogin) btnThemeLogin.addEventListener('click', toggleTheme);
+const btnThemeHeader = document.getElementById('theme-toggle-header');
+if (btnThemeHeader) btnThemeHeader.addEventListener('click', toggleTheme);
+
+initTheme();
+
+// ==============================================
+// 3. NON-BLOCKING UI: TOAST & ASYNC CONFIRM MODAL
+// ==============================================
+const Toast = {
+    show(message, type = 'info', duration = 3500) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        let iconSvg = '';
+        if (type === 'success') {
+            iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        } else if (type === 'error') {
+            iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+        } else {
+            iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+        }
+        
+        toast.innerHTML = `<span class="toast-icon">${iconSvg}</span><span>${message}</span>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+};
+
+function customConfirm(message, title = 'Xác nhận') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-confirm-modal');
+        const titleEl = document.getElementById('custom-confirm-title');
+        const msgEl = document.getElementById('custom-confirm-message');
+        const btnOk = document.getElementById('custom-confirm-ok');
+        const btnCancel = document.getElementById('custom-confirm-cancel');
+        
+        if (!modal) return resolve(confirm(message));
+        
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = message;
+        modal.style.display = 'flex';
+        
+        function cleanup(result) {
+            modal.style.display = 'none';
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+            window.removeEventListener('keydown', onKey);
+            modal.removeEventListener('click', onBackdrop);
+            resolve(result);
+        }
+        function onOk(e) { e.stopPropagation(); cleanup(true); }
+        function onCancel(e) { e.stopPropagation(); cleanup(false); }
+        function onKey(e) {
+            if (e.key === 'Escape') cleanup(false);
+            if (e.key === 'Enter') cleanup(true);
+        }
+        function onBackdrop(e) {
+            if (e.target === modal) cleanup(false);
+        }
+        
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+        window.addEventListener('keydown', onKey);
+        modal.addEventListener('click', onBackdrop);
+    });
+}
+
+// ==============================================
+// 4. BIẾN TRẠNG THÁI NGƯỜI DÙNG & ĐIỀU HƯỚNG
+// ==============================================
 let currentUser = null;
 let clockInterval = null;
 
@@ -65,15 +167,13 @@ function showApp() {
 }
 
 // ==============================================
-// 3. KHỞI TẠO TẤT CẢ FLATPICKR GLOBALLY (CHỈ 1 LẦN)
+// 5. KHỞI TẠO FLATPICKR GLOBALLY
 // ==============================================
 window.isUpdatingConverter = false;
 try {
-    // 1. Planning Flatpickrs
     flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
     flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
     
-    // 2. Converter Flatpickrs (GIỐNG HỆT PLANNING)
     flatpickr(".converter-fp", {
         disableMobile: true,
         enableTime: true,
@@ -87,40 +187,40 @@ try {
             window.isUpdatingConverter = true;
             
             try {
-                const input = instance.element;
-                const row = input.closest('.converter-row');
-                const tz = row.dataset.tz;
+                const triggerRow = instance.element.closest('.converter-row');
+                const sourceTz = triggerRow.dataset.tz;
                 
-                const localDate = selectedDates[0];
-                const yyyy = localDate.getFullYear();
-                const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-                const dd = String(localDate.getDate()).padStart(2, '0');
-                const hh = String(localDate.getHours()).padStart(2, '0');
-                const min = String(localDate.getMinutes()).padStart(2, '0');
-
-                const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-                const realDayjs = dayjs(isoString).tz(tz, true);
+                const chosenDate = selectedDates[0];
+                const year = chosenDate.getFullYear();
+                const month = chosenDate.getMonth() + 1;
+                const day = chosenDate.getDate();
+                const hours = chosenDate.getHours();
+                const minutes = chosenDate.getMinutes();
                 
-                document.querySelectorAll('.converter-row').forEach(otherRow => {
-                    if (otherRow !== row) {
-                        const otherTz = otherRow.dataset.tz;
-                        const otherInput = otherRow.querySelector('.converter-fp');
-                        if (otherInput && otherInput._flatpickr) {
-                            const targetTzDayjs = realDayjs.tz(otherTz);
-                            const otherFakeDate = new Date(
-                                parseInt(targetTzDayjs.format("YYYY"), 10),
-                                parseInt(targetTzDayjs.format("MM"), 10) - 1,
-                                parseInt(targetTzDayjs.format("DD"), 10),
-                                parseInt(targetTzDayjs.format("HH"), 10),
-                                parseInt(targetTzDayjs.format("mm"), 10)
-                            );
-                            otherInput._flatpickr.setDate(otherFakeDate, false);
-                        }
+                const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+                const sourceDayjs = dayjs.tz(isoString, sourceTz);
+                
+                document.querySelectorAll('.converter-row').forEach(row => {
+                    if (row === triggerRow) return;
+                    
+                    const targetTz = row.dataset.tz;
+                    const targetDayjs = sourceDayjs.tz(targetTz);
+                    const targetInput = row.querySelector('.converter-fp');
+                    
+                    if (targetInput && targetInput._flatpickr) {
+                        const fakeDate = new Date(
+                            parseInt(targetDayjs.format("YYYY"), 10),
+                            parseInt(targetDayjs.format("MM"), 10) - 1,
+                            parseInt(targetDayjs.format("DD"), 10),
+                            parseInt(targetDayjs.format("HH"), 10),
+                            parseInt(targetDayjs.format("mm"), 10)
+                        );
+                        targetInput._flatpickr.setDate(fakeDate, false);
                     }
                 });
             } catch(e) {
                 console.error("Lỗi quy đổi giờ:", e);
-                alert("LỖI QUY ĐỔI GIỜ: " + e.message);
+                Toast.show("Lỗi quy đổi giờ: " + e.message, "error");
             } finally {
                 window.isUpdatingConverter = false;
             }
@@ -162,15 +262,14 @@ tabBtns.forEach(btn => {
 
 function startClocks() {
     updateClocks();
+    if (clockInterval) clearInterval(clockInterval);
     clockInterval = setInterval(updateClocks, 1000);
 }
 
 function updateClocks() {
     const now = dayjs();
-    
     for (const [key, tz] of Object.entries(timezones)) {
         const timeAtTz = now.tz(tz);
-        
         const card = document.getElementById(`clock-${key}`);
         if (card) {
             card.querySelector('.time').textContent = timeAtTz.format('HH:mm:ss');
@@ -179,9 +278,6 @@ function updateClocks() {
     }
 }
 
-// ==============================================
-// 4. XỬ LÝ TIME CONVERTER (CHỈ SET VALUE, KHÔNG INIT LẠI)
-// ==============================================
 function initConverter() {
     window.isUpdatingConverter = true;
     const now = dayjs();
@@ -200,7 +296,6 @@ function initConverter() {
                     parseInt(targetDayjs.format("HH"), 10),
                     parseInt(targetDayjs.format("mm"), 10)
                 );
-                
                 input._flatpickr.setDate(fakeDate, false);
             } catch (e) {
                 console.error("Error setting date:", e);
@@ -212,7 +307,7 @@ function initConverter() {
 }
 
 // ==============================================
-// 5. XỬ LÝ PLANNING & GOOGLE SHEETS
+// 6. XỬ LÝ PLANNING & GOOGLE SHEETS
 // ==============================================
 const API_URL = 'https://script.google.com/macros/s/AKfycbw9_obYD9-zOhE_YHlbjFK-WCLATgd4o0xghVz1RrmFzJCAHmaYE4ZZ_-CdRbgrL23T2Q/exec';
 
@@ -230,6 +325,7 @@ document.getElementById('btn-submit-plan').addEventListener('click', async () =>
     if (!startVal || !endVal) {
         msg.textContent = 'Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc!';
         msg.className = 'status-msg error';
+        Toast.show('Vui lòng chọn thời gian bắt đầu và kết thúc!', 'error');
         return;
     }
     
@@ -243,6 +339,7 @@ document.getElementById('btn-submit-plan').addEventListener('click', async () =>
         if (endObj.isBefore(startObj) || endObj.isSame(startObj)) {
             msg.textContent = 'Giờ kết thúc phải sau giờ bắt đầu!';
             msg.className = 'status-msg error';
+            Toast.show('Giờ kết thúc phải sau giờ bắt đầu!', 'error');
             return;
         }
         
@@ -261,18 +358,21 @@ document.getElementById('btn-submit-plan').addEventListener('click', async () =>
         
         msg.textContent = 'Đã lưu lịch thành công!';
         msg.className = 'status-msg success';
+        Toast.show('Đã lưu lịch rảnh thành công!', 'success');
         loadScheduleBoard();
         
     } catch (err) {
         console.error(err);
         msg.textContent = 'Đã có lỗi hoặc mạng chậm, vui lòng Tải lại bảng để kiểm tra.';
         msg.className = 'status-msg error';
+        Toast.show('Lỗi mạng khi lưu lịch!', 'error');
         loadScheduleBoard();
     }
 });
 
 async function deleteSchedule(id) {
-    if(!confirm('Bạn có chắc muốn xóa khoảng thời gian này?')) return;
+    const confirmed = await customConfirm('Bạn có chắc chắn muốn xóa khoảng thời gian này không?', 'Xóa lịch rảnh');
+    if (!confirmed) return;
     
     try {
         await fetch(API_URL, {
@@ -283,250 +383,417 @@ async function deleteSchedule(id) {
                 id: id
             })
         });
+        Toast.show('Đã xóa khoảng thời gian thành công!', 'success');
         loadScheduleBoard();
     } catch(err) {
-        alert('Có lỗi xảy ra khi xóa!');
+        Toast.show('Có lỗi xảy ra khi xóa lịch!', 'error');
     }
 }
 
 window.deleteSchedule = deleteSchedule;
 
+function renderTimelineFromData(rawData) {
+    const myListEl = document.getElementById('my-schedule-list');
+    const timelineEl = document.getElementById('custom-timeline');
+    if (!myListEl || !timelineEl) return;
+    
+    const nowUTC = dayjs().utc();
+    const futureData = rawData.filter(item => dayjs(item.endTime).isAfter(nowUTC));
+    
+    if (!futureData || futureData.length === 0) {
+        timelineEl.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding:2rem 0;">Chưa có ai đăng ký lịch rảnh trong tương lai.</p>';
+        myListEl.innerHTML = '<p style="color: var(--text-muted);">Bạn chưa có lịch rảnh nào.</p>';
+        return;
+    }
+    
+    timelineEl.innerHTML = '';
+    
+    let minStart = null;
+    let maxEnd = null;
+    futureData.forEach(item => {
+        const start = dayjs(item.startTime).tz(currentUser.tz);
+        const end = dayjs(item.endTime).tz(currentUser.tz);
+        if(!minStart || start.isBefore(minStart)) minStart = start;
+        if(!maxEnd || end.isAfter(maxEnd)) maxEnd = end;
+    });
+    
+    minStart = minStart.startOf('hour');
+    maxEnd = maxEnd.add(1, 'hour').startOf('hour'); 
+    
+    const totalHours = maxEnd.diff(minStart, 'hour');
+    const PIXELS_PER_HOUR = 80;
+    const totalWidth = totalHours * PIXELS_PER_HOUR;
+    const LABEL_WIDTH = 120;
+    
+    timelineEl.style.width = (totalWidth + LABEL_WIDTH) + 'px';
+    
+    const axisRow = document.createElement('div');
+    axisRow.style.display = 'flex';
+    axisRow.style.borderBottom = '2px solid var(--border)';
+    axisRow.style.position = 'sticky';
+    axisRow.style.top = '0';
+    axisRow.style.background = 'var(--bg-subtle)';
+    axisRow.style.zIndex = '10';
+    
+    const corner = document.createElement('div');
+    corner.style.width = LABEL_WIDTH + 'px';
+    corner.style.flexShrink = '0';
+    corner.style.borderRight = '1px solid var(--border)';
+    corner.style.position = 'sticky';
+    corner.style.left = '0';
+    corner.style.background = 'var(--bg-subtle)';
+    corner.style.zIndex = '11';
+    axisRow.appendChild(corner);
+    
+    for(let i = 0; i <= totalHours; i++) {
+        const timePoint = minStart.add(i, 'hour');
+        const tick = document.createElement('div');
+        tick.style.width = PIXELS_PER_HOUR + 'px';
+        tick.style.flexShrink = '0';
+        tick.style.borderLeft = '1px solid var(--border)';
+        tick.style.padding = '4px 2px';
+        tick.style.fontSize = '0.8rem';
+        tick.style.color = 'var(--text-secondary)';
+        tick.style.boxSizing = 'border-box';
+        
+        const timeStr = timePoint.format('HH:mm');
+        const dateStr = timePoint.format('DD/MM');
+        
+        if (timeStr === '00:00') {
+            tick.style.fontWeight = 'bold';
+            tick.style.color = '#ef4444';
+            tick.style.background = 'var(--danger-bg)';
+            tick.style.borderLeft = '2px solid #ef4444';
+        }
+        
+        tick.innerHTML = `<div>${timeStr}</div><div style="font-size:0.7rem; color: var(--text-muted);">${dateStr}</div>`;
+        axisRow.appendChild(tick);
+    }
+    timelineEl.appendChild(axisRow);
+    
+    const uniqueNames = [...new Set(futureData.map(d => d.name))];
+    uniqueNames.forEach(name => {
+        const personRow = document.createElement('div');
+        personRow.style.display = 'flex';
+        personRow.style.borderBottom = '1px solid var(--border)';
+        personRow.style.position = 'relative';
+        
+        const nameCol = document.createElement('div');
+        nameCol.textContent = name;
+        nameCol.style.width = LABEL_WIDTH + 'px';
+        nameCol.style.flexShrink = '0';
+        nameCol.style.borderRight = '1px solid var(--border)';
+        nameCol.style.padding = '0.5rem';
+        nameCol.style.fontWeight = '600';
+        nameCol.style.position = 'sticky';
+        nameCol.style.left = '0';
+        nameCol.style.background = 'var(--bg-surface)';
+        nameCol.style.zIndex = '5';
+        nameCol.style.display = 'flex';
+        nameCol.style.alignItems = 'center';
+        nameCol.style.color = 'var(--text-main)';
+        personRow.appendChild(nameCol);
+        
+        const track = document.createElement('div');
+        track.style.position = 'relative';
+        track.style.width = totalWidth + 'px';
+        track.style.background = `repeating-linear-gradient(to right, transparent, transparent ${PIXELS_PER_HOUR-1}px, var(--border) ${PIXELS_PER_HOUR-1}px, var(--border) ${PIXELS_PER_HOUR}px)`;
+        
+        const personData = futureData.filter(d => d.name === name);
+        personData.forEach(block => {
+            const start = dayjs(block.startTime).tz(currentUser.tz);
+            const end = dayjs(block.endTime).tz(currentUser.tz);
+            
+            const startDiff = start.diff(minStart, 'minute') / 60;
+            const duration = end.diff(start, 'minute') / 60;
+            
+            const blockEl = document.createElement('div');
+            blockEl.style.position = 'absolute';
+            blockEl.style.left = (startDiff * PIXELS_PER_HOUR) + 'px';
+            blockEl.style.width = (duration * PIXELS_PER_HOUR) + 'px';
+            blockEl.style.top = '10%';
+            blockEl.style.height = '80%';
+            blockEl.style.background = userColors[name] || '#6b7280';
+            blockEl.style.borderRadius = '6px';
+            blockEl.style.cursor = 'pointer';
+            blockEl.style.boxShadow = '0 1px 2px rgba(0,0,0,0.2)';
+            
+            blockEl.title = `${name} rảnh:\nTừ: ${start.format('HH:mm DD/MM')}\nĐến: ${end.format('HH:mm DD/MM')}`;
+            
+            track.appendChild(blockEl);
+        });
+        
+        personRow.appendChild(track);
+        timelineEl.appendChild(personRow);
+    });
+    
+    const crosshair = document.createElement('div');
+    crosshair.style.position = 'absolute';
+    crosshair.style.top = '0';
+    crosshair.style.bottom = '0';
+    crosshair.style.height = '100%';
+    crosshair.style.width = '2px';
+    crosshair.style.background = 'rgba(239, 68, 68, 0.85)';
+    crosshair.style.zIndex = '30';
+    crosshair.style.display = 'none';
+    crosshair.style.pointerEvents = 'none';
+    
+    const crosshairLabel = document.createElement('div');
+    crosshairLabel.style.position = 'absolute';
+    crosshairLabel.style.top = '6px';
+    crosshairLabel.style.left = '8px';
+    crosshairLabel.style.background = '#ef4444';
+    crosshairLabel.style.color = 'white';
+    crosshairLabel.style.padding = '3px 8px';
+    crosshairLabel.style.fontSize = '0.785rem';
+    crosshairLabel.style.fontWeight = '700';
+    crosshairLabel.style.borderRadius = '6px';
+    crosshairLabel.style.whiteSpace = 'nowrap';
+    crosshairLabel.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+    crosshairLabel.style.pointerEvents = 'none';
+    crosshair.appendChild(crosshairLabel);
+    
+    timelineEl.appendChild(crosshair);
+    
+    timelineEl.addEventListener('mousemove', (e) => {
+        const rect = timelineEl.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        
+        if(mouseX > LABEL_WIDTH) {
+            crosshair.style.display = 'block';
+            crosshair.style.left = mouseX + 'px';
+            
+            const hoursFromStart = (mouseX - LABEL_WIDTH) / PIXELS_PER_HOUR;
+            const hoverTime = minStart.add(hoursFromStart, 'hour');
+            crosshairLabel.textContent = hoverTime.format('HH:mm (DD/MM)');
+        } else {
+            crosshair.style.display = 'none';
+        }
+    });
+    
+    timelineEl.addEventListener('touchstart', (e) => {
+        const rect = timelineEl.getBoundingClientRect();
+        const touch = e.touches[0];
+        const mouseX = touch.clientX - rect.left;
+        
+        if(mouseX > LABEL_WIDTH) {
+            crosshair.style.display = 'block';
+            crosshair.style.left = mouseX + 'px';
+            
+            const hoursFromStart = (mouseX - LABEL_WIDTH) / PIXELS_PER_HOUR;
+            const hoverTime = minStart.add(hoursFromStart, 'hour');
+            crosshairLabel.textContent = hoverTime.format('HH:mm (DD/MM)');
+        } else {
+            crosshair.style.display = 'none';
+        }
+    }, {passive: true});
+    
+    timelineEl.addEventListener('mouseleave', () => { crosshair.style.display = 'none'; });
+
+    const myData = futureData.filter(item => item.name === currentUser.name);
+    myListEl.innerHTML = '';
+    
+    if (myData.length === 0) {
+        myListEl.innerHTML = '<p style="color: var(--text-muted);">Bạn chưa có lịch rảnh nào.</p>';
+    } else {
+        myData.sort((a,b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
+        myData.forEach(item => {
+            const startLocal = dayjs(item.startTime).tz(currentUser.tz);
+            const endLocal = dayjs(item.endTime).tz(currentUser.tz);
+            
+            const div = document.createElement('div');
+            div.className = 'schedule-item';
+            div.innerHTML = `
+                <div class="s-time" style="font-weight: 500;">
+                    ${startLocal.format('HH:mm [ngày] DD/MM')} &nbsp; ➔ &nbsp; ${endLocal.format('HH:mm [ngày] DD/MM')}
+                </div>
+                <button class="btn-danger" onclick="deleteSchedule('${item.id}')">Xóa</button>
+            `;
+            myListEl.appendChild(div);
+        });
+    }
+}
+
+// Stale-while-revalidate Schedule Loading
 async function loadScheduleBoard() {
     const myListEl = document.getElementById('my-schedule-list');
     const timelineEl = document.getElementById('custom-timeline');
     
-    myListEl.innerHTML = '<p>Đang tải dữ liệu...</p>';
-    timelineEl.innerHTML = '<p style="text-align:center; padding: 2rem;">Đang vẽ biểu đồ...</p>';
+    // 1. Optimistic render from cache if available
+    const cachedSchedule = localStorage.getItem('timeSync_schedule_cache');
+    if (cachedSchedule) {
+        try {
+            const parsed = JSON.parse(cachedSchedule);
+            renderTimelineFromData(parsed);
+        } catch(e) {
+            console.error("Lỗi đọc cache schedule:", e);
+        }
+    } else {
+        if (myListEl) myListEl.innerHTML = '<p>Đang tải dữ liệu...</p>';
+        if (timelineEl) timelineEl.innerHTML = '<p style="text-align:center; padding: 2rem; color: var(--text-muted);">Đang vẽ biểu đồ...</p>';
+    }
     
+    // 2. Fetch fresh data in background
     try {
         const response = await fetch(API_URL);
         const rawData = await response.json();
         
-        const nowUTC = dayjs().utc();
-        const futureData = rawData.filter(item => dayjs(item.endTime).isAfter(nowUTC));
-        
-        if (!futureData || futureData.length === 0) {
-            timelineEl.innerHTML = '<p style="text-align:center; color:#6b7280; padding:2rem 0;">Chưa có ai đăng ký lịch rảnh trong tương lai.</p>';
-            myListEl.innerHTML = '<p style="color:#6b7280;">Bạn chưa có lịch rảnh nào.</p>';
-            return;
-        }
-        
-        timelineEl.innerHTML = '';
-        
-        let minStart = null;
-        let maxEnd = null;
-        futureData.forEach(item => {
-            const start = dayjs(item.startTime).tz(currentUser.tz);
-            const end = dayjs(item.endTime).tz(currentUser.tz);
-            if(!minStart || start.isBefore(minStart)) minStart = start;
-            if(!maxEnd || end.isAfter(maxEnd)) maxEnd = end;
-        });
-        
-        minStart = minStart.startOf('hour');
-        maxEnd = maxEnd.add(1, 'hour').startOf('hour'); 
-        
-        const totalHours = maxEnd.diff(minStart, 'hour');
-        const PIXELS_PER_HOUR = 80;
-        const totalWidth = totalHours * PIXELS_PER_HOUR;
-        const LABEL_WIDTH = 120;
-        
-        timelineEl.style.width = (totalWidth + LABEL_WIDTH) + 'px';
-        
-        const axisRow = document.createElement('div');
-        axisRow.style.display = 'flex';
-        axisRow.style.borderBottom = '2px solid #d1d5db';
-        axisRow.style.position = 'sticky';
-        axisRow.style.top = '0';
-        axisRow.style.background = '#f9fafb';
-        axisRow.style.zIndex = '10';
-        
-        const corner = document.createElement('div');
-        corner.style.width = LABEL_WIDTH + 'px';
-        corner.style.flexShrink = '0';
-        corner.style.borderRight = '1px solid #d1d5db';
-        corner.style.position = 'sticky';
-        corner.style.left = '0';
-        corner.style.background = '#f9fafb';
-        corner.style.zIndex = '11';
-        axisRow.appendChild(corner);
-        
-        for(let i = 0; i <= totalHours; i++) {
-            const timePoint = minStart.add(i, 'hour');
-            const tick = document.createElement('div');
-            tick.style.width = PIXELS_PER_HOUR + 'px';
-            tick.style.flexShrink = '0';
-            tick.style.borderLeft = '1px solid #d1d5db';
-            tick.style.padding = '4px 2px';
-            tick.style.fontSize = '0.8rem';
-            tick.style.color = '#4b5563';
-            tick.style.boxSizing = 'border-box';
-            
-            const timeStr = timePoint.format('HH:mm');
-            const dateStr = timePoint.format('DD/MM');
-            
-            if (timeStr === '00:00') {
-                tick.style.fontWeight = 'bold';
-                tick.style.color = '#b91c1c';
-                tick.style.background = '#fee2e2';
-                tick.style.borderLeft = '2px solid #b91c1c';
-            }
-            
-            tick.innerHTML = `<div>${timeStr}</div><div style="font-size:0.7rem;">${dateStr}</div>`;
-            axisRow.appendChild(tick);
-        }
-        timelineEl.appendChild(axisRow);
-        
-        const uniqueNames = [...new Set(futureData.map(d => d.name))];
-        uniqueNames.forEach(name => {
-            const personRow = document.createElement('div');
-            personRow.style.display = 'flex';
-            personRow.style.borderBottom = '1px solid #e5e7eb';
-            personRow.style.position = 'relative';
-            
-            const nameCol = document.createElement('div');
-            nameCol.textContent = name;
-            nameCol.style.width = LABEL_WIDTH + 'px';
-            nameCol.style.flexShrink = '0';
-            nameCol.style.borderRight = '1px solid #d1d5db';
-            nameCol.style.padding = '0.5rem';
-            nameCol.style.fontWeight = '600';
-            nameCol.style.position = 'sticky';
-            nameCol.style.left = '0';
-            nameCol.style.background = 'white';
-            nameCol.style.zIndex = '5';
-            nameCol.style.display = 'flex';
-            nameCol.style.alignItems = 'center';
-            personRow.appendChild(nameCol);
-            
-            const track = document.createElement('div');
-            track.style.position = 'relative';
-            track.style.width = totalWidth + 'px';
-            track.style.background = `repeating-linear-gradient(to right, transparent, transparent ${PIXELS_PER_HOUR-1}px, #e5e7eb ${PIXELS_PER_HOUR-1}px, #e5e7eb ${PIXELS_PER_HOUR}px)`;
-            
-            const personData = futureData.filter(d => d.name === name);
-            personData.forEach(block => {
-                const start = dayjs(block.startTime).tz(currentUser.tz);
-                const end = dayjs(block.endTime).tz(currentUser.tz);
-                
-                const startDiff = start.diff(minStart, 'minute') / 60;
-                const duration = end.diff(start, 'minute') / 60;
-                
-                const blockEl = document.createElement('div');
-                blockEl.style.position = 'absolute';
-                blockEl.style.left = (startDiff * PIXELS_PER_HOUR) + 'px';
-                blockEl.style.width = (duration * PIXELS_PER_HOUR) + 'px';
-                blockEl.style.top = '10%';
-                blockEl.style.height = '80%';
-                blockEl.style.background = userColors[name] || '#6b7280';
-                blockEl.style.borderRadius = '6px';
-                blockEl.style.cursor = 'pointer';
-                blockEl.style.boxShadow = '0 1px 2px rgba(0,0,0,0.2)';
-                
-                blockEl.title = `${name} rảnh:\nTừ: ${start.format('HH:mm DD/MM')}\nĐến: ${end.format('HH:mm DD/MM')}`;
-                
-                track.appendChild(blockEl);
-            });
-            
-            personRow.appendChild(track);
-            timelineEl.appendChild(personRow);
-        });
-        
-        const crosshair = document.createElement('div');
-        crosshair.style.position = 'absolute';
-        crosshair.style.top = '0';
-        crosshair.style.bottom = '0';
-        crosshair.style.height = '100%';
-        crosshair.style.width = '2px';
-        crosshair.style.background = 'rgba(239, 68, 68, 0.85)';
-        crosshair.style.zIndex = '30';
-        crosshair.style.display = 'none';
-        crosshair.style.pointerEvents = 'none';
-        
-        const crosshairLabel = document.createElement('div');
-        crosshairLabel.style.position = 'absolute';
-        crosshairLabel.style.top = '6px';
-        crosshairLabel.style.left = '8px';
-        crosshairLabel.style.background = '#ef4444';
-        crosshairLabel.style.color = 'white';
-        crosshairLabel.style.padding = '3px 8px';
-        crosshairLabel.style.fontSize = '0.785rem';
-        crosshairLabel.style.fontWeight = '700';
-        crosshairLabel.style.borderRadius = '6px';
-        crosshairLabel.style.whiteSpace = 'nowrap';
-        crosshairLabel.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
-        crosshairLabel.style.pointerEvents = 'none';
-        crosshair.appendChild(crosshairLabel);
-        
-        timelineEl.appendChild(crosshair);
-        
-        timelineEl.addEventListener('mousemove', (e) => {
-            const rect = timelineEl.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            
-            if(mouseX > LABEL_WIDTH) {
-                crosshair.style.display = 'block';
-                crosshair.style.left = mouseX + 'px';
-                
-                const hoursFromStart = (mouseX - LABEL_WIDTH) / PIXELS_PER_HOUR;
-                const hoverTime = minStart.add(hoursFromStart, 'hour');
-                crosshairLabel.textContent = hoverTime.format('HH:mm (DD/MM)');
-            } else {
-                crosshair.style.display = 'none';
-            }
-        });
-        
-        timelineEl.addEventListener('touchstart', (e) => {
-            const rect = timelineEl.getBoundingClientRect();
-            const touch = e.touches[0];
-            const mouseX = touch.clientX - rect.left;
-            
-            if(mouseX > LABEL_WIDTH) {
-                crosshair.style.display = 'block';
-                crosshair.style.left = mouseX + 'px';
-                
-                const hoursFromStart = (mouseX - LABEL_WIDTH) / PIXELS_PER_HOUR;
-                const hoverTime = minStart.add(hoursFromStart, 'hour');
-                crosshairLabel.textContent = hoverTime.format('HH:mm (DD/MM)');
-            } else {
-                crosshair.style.display = 'none';
-            }
-        }, {passive: true});
-        
-        timelineEl.addEventListener('mouseleave', () => { crosshair.style.display = 'none'; });
-
-        const myData = futureData.filter(item => item.name === currentUser.name);
-        myListEl.innerHTML = '';
-        
-        if (myData.length === 0) {
-            myListEl.innerHTML = '<p style="color:#6b7280;">Bạn chưa có lịch rảnh nào.</p>';
-        } else {
-            myData.sort((a,b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
-            myData.forEach(item => {
-                const startLocal = dayjs(item.startTime).tz(currentUser.tz);
-                const endLocal = dayjs(item.endTime).tz(currentUser.tz);
-                
-                const div = document.createElement('div');
-                div.className = 'schedule-item';
-                div.innerHTML = `
-                    <div class="s-time" style="font-weight: 500;">
-                        ${startLocal.format('HH:mm [ngày] DD/MM')} &nbsp; ➔ &nbsp; ${endLocal.format('HH:mm [ngày] DD/MM')}
-                    </div>
-                    <button class="btn-danger" onclick="deleteSchedule('${item.id}')">Xóa</button>
-                `;
-                myListEl.appendChild(div);
-            });
-        }
-        
+        localStorage.setItem('timeSync_schedule_cache', JSON.stringify(rawData));
+        renderTimelineFromData(rawData);
     } catch (err) {
-        timelineEl.innerHTML = '<p class="status-msg error">Lỗi tải dữ liệu. Hãy kiểm tra kết nối mạng.</p>';
         console.error(err);
+        if (!cachedSchedule) {
+            if (timelineEl) timelineEl.innerHTML = '<p class="status-msg error">Lỗi tải dữ liệu. Hãy kiểm tra kết nối mạng.</p>';
+        }
     }
 }
 
-document.getElementById('btn-refresh-board').addEventListener('click', loadScheduleBoard);
+document.getElementById('btn-refresh-board').addEventListener('click', () => {
+    Toast.show('Đang làm mới bảng lịch...', 'info');
+    loadScheduleBoard();
+});
 
 // ==============================================
-// 6. XỬ LÝ GALLERY (THƯ VIỆN ẢNH)
+// 7. XỬ LÝ REACTIONS (LƯỢT THÍCH / THẢ TIM)
+// ==============================================
+function getLikesMap() {
+    try {
+        return JSON.parse(localStorage.getItem('timeSync_likes') || '{}');
+    } catch(e) {
+        return {};
+    }
+}
+
+function saveLikesMap(map) {
+    localStorage.setItem('timeSync_likes', JSON.stringify(map));
+}
+
+function toggleLike(imgId, e) {
+    if (e) e.stopPropagation();
+    const likesMap = getLikesMap();
+    const current = likesMap[imgId] || { count: 0, liked: false };
+    
+    current.liked = !current.liked;
+    current.count = current.liked ? (current.count + 1) : Math.max(0, current.count - 1);
+    
+    likesMap[imgId] = current;
+    saveLikesMap(likesMap);
+    
+    // Update all UI elements representing this like
+    document.querySelectorAll(`[data-like-id="${imgId}"]`).forEach(btn => {
+        if (current.liked) {
+            btn.classList.add('heart-liked');
+        } else {
+            btn.classList.remove('heart-liked');
+        }
+        const countEl = btn.querySelector('.like-count');
+        if (countEl) countEl.textContent = current.count;
+    });
+    
+    // Update lightbox like button if open
+    const lightboxLikeBtn = document.getElementById('lightbox-like-btn');
+    if (lightboxLikeBtn && activeLightboxIndex !== -1 && allImages[activeLightboxIndex]?.id === imgId) {
+        if (current.liked) {
+            lightboxLikeBtn.classList.add('heart-liked');
+        } else {
+            lightboxLikeBtn.classList.remove('heart-liked');
+        }
+        document.getElementById('lightbox-like-count').textContent = current.count;
+    }
+    
+    // Non-blocking sync to backend
+    fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'likeImage', id: imgId, liked: current.liked })
+    }).catch(() => {});
+}
+
+// ==============================================
+// 8. IMMERSIVE PHOTO LIGHTBOX
+// ==============================================
+let activeLightboxIndex = -1;
+const lightboxModal = document.getElementById('lightbox-modal');
+const lightboxImg = document.getElementById('lightbox-img');
+const lightboxUploader = document.getElementById('lightbox-uploader');
+const lightboxTime = document.getElementById('lightbox-time');
+const lightboxLikeBtn = document.getElementById('lightbox-like-btn');
+const lightboxLikeCount = document.getElementById('lightbox-like-count');
+const lightboxDownload = document.getElementById('lightbox-download');
+const lightboxClose = document.getElementById('lightbox-close');
+const lightboxPrev = document.getElementById('lightbox-prev');
+const lightboxNext = document.getElementById('lightbox-next');
+
+function openLightbox(index) {
+    if (!allImages || index < 0 || index >= allImages.length) return;
+    activeLightboxIndex = index;
+    
+    const img = allImages[index];
+    const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
+    const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
+    
+    lightboxImg.src = directImageUrl;
+    lightboxUploader.textContent = img.name;
+    lightboxTime.textContent = timeFormatted;
+    lightboxDownload.href = directImageUrl;
+    
+    const likesMap = getLikesMap();
+    const likeData = likesMap[img.id] || { count: 0, liked: false };
+    lightboxLikeCount.textContent = likeData.count;
+    if (likeData.liked) {
+        lightboxLikeBtn.classList.add('heart-liked');
+    } else {
+        lightboxLikeBtn.classList.remove('heart-liked');
+    }
+    
+    lightboxModal.style.display = 'flex';
+}
+
+function closeLightbox() {
+    activeLightboxIndex = -1;
+    lightboxModal.style.display = 'none';
+    lightboxImg.src = '';
+}
+
+function nextLightboxImage() {
+    if (!allImages.length) return;
+    let nextIndex = activeLightboxIndex + 1;
+    if (nextIndex >= allImages.length) nextIndex = 0;
+    openLightbox(nextIndex);
+}
+
+function prevLightboxImage() {
+    if (!allImages.length) return;
+    let prevIndex = activeLightboxIndex - 1;
+    if (prevIndex < 0) prevIndex = allImages.length - 1;
+    openLightbox(prevIndex);
+}
+
+if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);
+if (lightboxNext) lightboxNext.addEventListener('click', nextLightboxImage);
+if (lightboxPrev) lightboxPrev.addEventListener('click', prevLightboxImage);
+
+if (lightboxModal) {
+    lightboxModal.querySelector('.lightbox-backdrop')?.addEventListener('click', closeLightbox);
+}
+
+if (lightboxLikeBtn) {
+    lightboxLikeBtn.addEventListener('click', () => {
+        if (activeLightboxIndex !== -1 && allImages[activeLightboxIndex]) {
+            toggleLike(allImages[activeLightboxIndex].id);
+        }
+    });
+}
+
+window.addEventListener('keydown', (e) => {
+    if (lightboxModal && lightboxModal.style.display === 'flex') {
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowRight') nextLightboxImage();
+        if (e.key === 'ArrowLeft') prevLightboxImage();
+    }
+});
+
+// ==============================================
+// 9. XỬ LÝ GALLERY (THƯ VIỆN ẢNH)
 // ==============================================
 const btnUpload = document.getElementById('btn-upload-image');
 const fileInput = document.getElementById('gallery-upload-input');
@@ -548,10 +815,12 @@ if (btnUpload && fileInput) {
         if (!file) return;
         
         showGalleryMsg("Đang nén ảnh...", false);
+        Toast.show("Đang nén ảnh để tải lên...", "info");
         
         try {
             const compressedBase64 = await compressImage(file, 1200, 1200, 0.8);
             showGalleryMsg("Đang tải ảnh lên hệ thống...", false);
+            Toast.show("Đang tải ảnh lên Google Drive...", "info");
             
             const payload = {
                 action: 'uploadImage',
@@ -569,13 +838,16 @@ if (btnUpload && fileInput) {
             const result = await response.json();
             if (result.success) {
                 showGalleryMsg("Đã tải ảnh lên thành công!", false);
+                Toast.show("Đã tải ảnh lên thành công!", "success");
                 loadGallery();
             } else {
                 showGalleryMsg("Lỗi: " + result.error, true);
+                Toast.show("Lỗi tải ảnh: " + result.error, "error");
             }
         } catch (error) {
             console.error(error);
             showGalleryMsg("Đã xảy ra lỗi khi tải ảnh.", true);
+            Toast.show("Đã xảy ra lỗi khi tải ảnh lên!", "error");
         }
         
         fileInput.value = '';
@@ -583,7 +855,10 @@ if (btnUpload && fileInput) {
 }
 
 if (btnRefreshGallery) {
-    btnRefreshGallery.addEventListener('click', loadGallery);
+    btnRefreshGallery.addEventListener('click', () => {
+        Toast.show("Đang làm mới thư viện ảnh...", "info");
+        loadGallery();
+    });
 }
 
 function compressImage(file, maxWidth, maxHeight, quality) {
@@ -622,53 +897,92 @@ function compressImage(file, maxWidth, maxHeight, quality) {
     });
 }
 
-
 let allImages = [];
 let currentImageIndex = 0;
 const IMAGES_PER_PAGE = 20;
 
+// Stale-while-revalidate Gallery Loading
 async function loadGallery() {
     if (!galleryGrid) return;
-    galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center;">Đang tải ảnh...</p>';
-    const loadMoreContainer = document.getElementById('load-more-container');
-    if (loadMoreContainer) loadMoreContainer.style.display = 'none';
     
+    const loadMoreContainer = document.getElementById('load-more-container');
+    const cachedImages = localStorage.getItem('timeSync_gallery_cache');
+    
+    // 1. Optimistically render from cache if available
+    if (cachedImages) {
+        try {
+            const parsed = JSON.parse(cachedImages);
+            if (parsed && parsed.length > 0) {
+                parsed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                allImages = parsed;
+                currentImageIndex = 0;
+                galleryGrid.innerHTML = '';
+                renderNextImages();
+            }
+        } catch(e) {
+            console.error("Lỗi đọc cache gallery:", e);
+        }
+    } else {
+        galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted);">Đang tải ảnh...</p>';
+        if (loadMoreContainer) loadMoreContainer.style.display = 'none';
+    }
+    
+    // 2. Fetch fresh data in background
     try {
         const response = await fetch(API_URL + "?action=getGallery");
         const images = await response.json();
         
         if (!images || images.length === 0) {
-            galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted);">Chưa có ảnh nào trong thư viện.</p>';
+            if (!cachedImages) {
+                galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted);">Chưa có ảnh nào trong thư viện.</p>';
+            }
             if (loadMoreContainer) loadMoreContainer.style.display = 'none';
             return;
         }
         
         images.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        localStorage.setItem('timeSync_gallery_cache', JSON.stringify(images));
+        
         allImages = images;
         currentImageIndex = 0;
         galleryGrid.innerHTML = '';
-        
         renderNextImages();
         
     } catch (error) {
-        galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--danger);">Không thể tải thư viện ảnh.</p>';
+        console.error(error);
+        if (!cachedImages) {
+            galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--danger);">Không thể tải thư viện ảnh.</p>';
+        }
     }
 }
 
 function renderNextImages() {
     if (!galleryGrid || !allImages.length) return;
     
+    const likesMap = getLikesMap();
     const nextLimit = Math.min(currentImageIndex + IMAGES_PER_PAGE, allImages.length);
     
     for (let i = currentImageIndex; i < nextLimit; i++) {
         const img = allImages[i];
         const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
         const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
+        const likeData = likesMap[img.id] || { count: 0, liked: false };
+        const isLiked = likeData.liked;
+        const likeCount = likeData.count;
+        const capturedIndex = i;
         
         const div = document.createElement('div');
         div.className = 'gallery-item';
         div.innerHTML = `
             <img src="${directImageUrl}" alt="Photo by ${img.name}" loading="lazy" onerror="this.src='https://placehold.co/400x400/1e293b/fff?text=Lỗi+tải+ảnh'">
+            <div class="gallery-actions-top">
+                <button class="btn-like-overlay ${isLiked ? 'heart-liked' : ''}" data-like-id="${img.id}" title="Thả tim">
+                    <svg class="heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="${isLiked ? '#ef4444' : 'none'}" stroke="${isLiked ? '#ef4444' : 'currentColor'}" stroke-width="2.2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                    <span class="like-count">${likeCount}</span>
+                </button>
+            </div>
             <div class="gallery-overlay">
                 <button class="btn-delete-img" data-id="${img.id}" title="Xóa ảnh này">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -683,11 +997,21 @@ function renderNextImages() {
             </div>
         `;
         
+        // Like click handler
+        const likeBtn = div.querySelector('.btn-like-overlay');
+        if (likeBtn) {
+            likeBtn.addEventListener('click', (e) => {
+                toggleLike(img.id, e);
+            });
+        }
+        
+        // Delete click handler (Custom Async Modal)
         div.querySelector('.btn-delete-img').addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (!confirm('Bạn có chắc chắn muốn xóa ảnh này không? Tất cả mọi người đều không thấy nữa.')) return;
+            const confirmed = await customConfirm('Bạn có chắc chắn muốn xóa ảnh này không? Tất cả mọi người đều không thấy nữa.', 'Xóa ảnh');
+            if (!confirmed) return;
             
-            div.style.opacity = '0.5';
+            div.style.opacity = '0.4';
             try {
                 const res = await fetch(API_URL, {
                     method: 'POST',
@@ -696,18 +1020,22 @@ function renderNextImages() {
                 const resData = await res.json();
                 if(resData.success) {
                     div.remove();
+                    allImages = allImages.filter(item => item.id !== img.id);
+                    localStorage.setItem('timeSync_gallery_cache', JSON.stringify(allImages));
+                    Toast.show('Đã xóa ảnh thành công!', 'success');
                 } else {
-                    alert("Lỗi khi xóa: " + resData.error);
+                    Toast.show("Lỗi khi xóa: " + resData.error, 'error');
                     div.style.opacity = '1';
                 }
             } catch (error) {
-                alert("Lỗi mạng khi xóa ảnh!");
+                Toast.show("Lỗi mạng khi xóa ảnh!", 'error');
                 div.style.opacity = '1';
             }
         });
         
+        // Click to open Lightbox (Immersive Viewer)
         div.addEventListener('click', () => {
-            window.open(directImageUrl, '_blank');
+            openLightbox(capturedIndex);
         });
         
         galleryGrid.appendChild(div);
