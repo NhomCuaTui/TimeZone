@@ -64,11 +64,12 @@ function showApp() {
     }
 }
 
+// Khởi tạo bộ chọn ngày giờ cho tab Planning (chỉ chạy 1 lần khi script tải)
 try {
-    flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
-    flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true });
+    flatpickr("#plan-start", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
+    flatpickr("#plan-end", { disableMobile: true, enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, altInput: true, altInputClass: 'flatpickr-input altInput', altFormat: "d/m/Y H:i" });
 } catch(e) {
-    console.error(e);
+    console.error("Lỗi Planning Flatpickr:", e);
 }
 
 const savedUser = localStorage.getItem('timeSyncUser');
@@ -119,70 +120,48 @@ function updateClocks() {
 }
 
 // ==============================================
-// 4. XỬ LÝ TIME CONVERTER
+// 4. XỬ LÝ TIME CONVERTER (NATIVE HTML5 DATETIME-LOCAL)
 // ==============================================
-let converterFpInstances = [];
-
 function initConverter() {
-    converterFpInstances.forEach(item => { if(item.fp && item.fp.destroy) item.fp.destroy(); });
-    converterFpInstances = [];
     const now = dayjs();
     let isUpdating = false;
     
     document.querySelectorAll('.converter-row').forEach(row => {
         const tz = row.dataset.tz;
-        const input = row.querySelector('.converter-fp');
+        const input = row.querySelector('.converter-native');
         if (!input) return;
         
+        // Khởi tạo ngày giờ hiện tại
         const targetDayjs = now.tz(tz);
-        const initialFakeDateStr = targetDayjs.format("YYYY-MM-DD HH:mm");
+        input.value = targetDayjs.format("YYYY-MM-DDTHH:mm");
         
-        try {
-            const fp = flatpickr(input, {
-                disableMobile: true,
-                enableTime: true,
-                dateFormat: "Y-m-d H:i",
-                time_24hr: true,
-                defaultDate: initialFakeDateStr,
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (isUpdating || selectedDates.length === 0) return;
-                    isUpdating = true;
-                    
-                    try {
-                        const localDate = selectedDates[0];
-                        const yyyy = localDate.getFullYear();
-                        const mm = String(localDate.getMonth() + 1).padStart(2, '0');
-                        const dd = String(localDate.getDate()).padStart(2, '0');
-                        const hh = String(localDate.getHours()).padStart(2, '0');
-                        const min = String(localDate.getMinutes()).padStart(2, '0');
-
-                        const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-                        const realDayjs = dayjs(isoString).tz(tz);
-                        
-                        converterFpInstances.forEach(item => {
-                            if (item.row !== row) {
-                                const targetTzDayjs = realDayjs.tz(item.tz);
-                                const fakeDateStr = targetTzDayjs.format("YYYY-MM-DD HH:mm");
-                                item.fp.setDate(fakeDateStr, false, "Y-m-d H:i");
-                            }
-                        });
-                    } catch(e) {
-                        console.error("Lỗi quy đổi giờ:", e);
-                        alert("LỖI QUY ĐỔI GIỜ: " + e.message);
-                    } finally {
-                        isUpdating = false;
+        input.addEventListener('change', (e) => {
+            if (isUpdating || !e.target.value) return;
+            isUpdating = true;
+            
+            try {
+                // e.target.value là chuỗi "YYYY-MM-DDTHH:mm"
+                const isoString = e.target.value + ":00";
+                const realDayjs = dayjs(isoString).tz(tz);
+                
+                // Quy đổi cho tất cả các input khác
+                document.querySelectorAll('.converter-row').forEach(otherRow => {
+                    if (otherRow !== row) {
+                        const otherTz = otherRow.dataset.tz;
+                        const otherInput = otherRow.querySelector('.converter-native');
+                        if (otherInput) {
+                            const targetTzDayjs = realDayjs.tz(otherTz);
+                            otherInput.value = targetTzDayjs.format("YYYY-MM-DDTHH:mm");
+                        }
                     }
-                }
-            });
-            
-            // Force explicit set date to guarantee initialization rendering
-            fp.setDate(initialFakeDateStr, false, "Y-m-d H:i");
-            
-            converterFpInstances.push({ tz: tz, fp: fp, row: row });
-        } catch (e) {
-            console.error("Flatpickr Error: ", e);
-            alert("Lỗi tải lịch: " + e.message);
-        }
+                });
+            } catch(err) {
+                console.error("Lỗi quy đổi giờ: ", err);
+                alert("Lỗi quy đổi: " + err.message);
+            } finally {
+                isUpdating = false;
+            }
+        });
     });
 }
 
