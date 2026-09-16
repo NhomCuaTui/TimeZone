@@ -3,115 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Time Sync Group</title>
+    <title>Time Sync Group — Đồng Bộ Múi Giờ & Lên Lịch</title>
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Day.js and Plugins để tính toán thời gian tự động chuẩn xác -->
+    
+    <!-- Day.js and Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <style>
-        /* Sửa lỗi giao diện altInput của Flatpickr bị nhỏ */
-        .flatpickr-input.altInput {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 1rem;
-            color: var(--text-main);
-        }
-        .flatpickr-input.altInput:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
-    </style>
 </head>
 <body>
     <!-- Màn hình Đăng nhập (Chọn tên) -->
     <div id="login-screen" class="screen active">
         <div class="login-container">
+            <div class="brand-badge">
+                <span class="brand-pulse"></span>
+                <span>TimeSync Workspace</span>
+            </div>
             <h1>Bạn là ai?</h1>
-            <p>Chọn tên của bạn để hệ thống tự động đồng bộ múi giờ.</p>
+            <p>Chọn hồ sơ của bạn để tự động điều chỉnh múi giờ và đồng bộ lịch rảnh của cả nhóm.</p>
             <div class="user-grid">
-                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Trung">Trung (VN)</button>
-                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Q.Minh">Q.Minh (VN)</button>
-                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="An">An (VN)</button>
-                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Hiếu">Hiếu (VN)</button>
-                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Đạt">Đạt (VN)</button>
-                <button class="user-btn" data-tz="Europe/Berlin" data-name="G.Minh">G.Minh (Đức)</button>
-                <button class="user-btn" data-tz="America/New_York" data-name="Bửu">Bửu (MA, Mỹ)</button>
-                <button class="user-btn" data-tz="America/Los_Angeles" data-name="Khang">Khang (NV, Mỹ)</button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Trung">
+                    <span class="user-flag">🇻🇳</span>
+                    <span class="user-name">Trung</span>
+                    <span class="user-tz-badge">Việt Nam · UTC+7</span>
+                </button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Q.Minh">
+                    <span class="user-flag">🇻🇳</span>
+                    <span class="user-name">Q.Minh</span>
+                    <span class="user-tz-badge">Việt Nam · UTC+7</span>
+                </button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="An">
+                    <span class="user-flag">🇻🇳</span>
+                    <span class="user-name">An</span>
+                    <span class="user-tz-badge">Việt Nam · UTC+7</span>
+                </button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Hiếu">
+                    <span class="user-flag">🇻🇳</span>
+                    <span class="user-name">Hiếu</span>
+                    <span class="user-tz-badge">Việt Nam · UTC+7</span>
+                </button>
+                <button class="user-btn" data-tz="Asia/Ho_Chi_Minh" data-name="Đạt">
+                    <span class="user-flag">🇻🇳</span>
+                    <span class="user-name">Đạt</span>
+                    <span class="user-tz-badge">Việt Nam · UTC+7</span>
+                </button>
+                <button class="user-btn" data-tz="Europe/Berlin" data-name="G.Minh">
+                    <span class="user-flag">🇩🇪</span>
+                    <span class="user-name">G.Minh</span>
+                    <span class="user-tz-badge">Bayern, Đức</span>
+                </button>
+                <button class="user-btn" data-tz="America/New_York" data-name="Bửu">
+                    <span class="user-flag">🇺🇸</span>
+                    <span class="user-name">Bửu</span>
+                    <span class="user-tz-badge">MA, Mỹ · Boston</span>
+                </button>
+                <button class="user-btn" data-tz="America/Los_Angeles" data-name="Khang">
+                    <span class="user-flag">🇺🇸</span>
+                    <span class="user-name">Khang</span>
+                    <span class="user-tz-badge">NV, Mỹ · Las Vegas</span>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Màn hình Chính -->
     <div id="app-screen" class="screen">
-        <header>
-            <div class="header-content">
-                <h2>Time Sync</h2>
-                <div class="user-info">
+        <header class="app-header">
+            <div class="header-inner">
+                <div class="header-brand">
+                    <div class="brand-logo">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <h2>TimeSync</h2>
+                </div>
+                <div class="user-pill">
+                    <div class="user-avatar-dot"></div>
                     <span id="current-user-display">Xin chào, ...</span>
-                    <button id="logout-btn">Đổi người</button>
+                    <button id="logout-btn" title="Chuyển sang thành viên khác">Đổi người</button>
                 </div>
             </div>
-            <nav class="tabs">
-                <button class="tab-btn active" data-target="global-time">Global Time</button>
-                <button class="tab-btn" data-target="planning">Planning (Lên lịch)</button>
-            </nav>
+            <div class="tabs-wrapper">
+                <nav class="tabs">
+                    <button class="tab-btn active" data-target="global-time">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        <span>Global Time & Converter</span>
+                    </button>
+                    <button class="tab-btn" data-target="planning">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Planning (Lên lịch)</span>
+                    </button>
+                </nav>
+            </div>
         </header>
 
-        <main>
+        <main class="app-main">
             <!-- Tab Global Time -->
             <section id="global-time" class="tab-content active">
-                <div class="clocks-container">
-                    <h3>Giờ hiện tại</h3>
+                <!-- Khối Đồng hồ Hiện Tại -->
+                <div class="surface-card">
+                    <div class="section-header">
+                        <div class="section-title-wrap">
+                            <div class="live-dot-wrap">
+                                <span class="live-pulse"></span>
+                                <span class="live-dot"></span>
+                            </div>
+                            <h3>Giờ hiện tại</h3>
+                        </div>
+                        <span class="section-badge">Real-time sync</span>
+                    </div>
                     <div class="clocks-grid">
                         <div class="clock-card" id="clock-vn">
-                            <div class="region">Việt Nam</div>
+                            <div class="clock-card-top">
+                                <span class="clock-flag">🇻🇳</span>
+                                <div class="region">Việt Nam</div>
+                                <span class="tz-pill">UTC+7</span>
+                            </div>
                             <div class="time">--:--:--</div>
                             <div class="date">--/--/----</div>
                         </div>
                         <div class="clock-card" id="clock-de">
-                            <div class="region">Đức</div>
+                            <div class="clock-card-top">
+                                <span class="clock-flag">🇩🇪</span>
+                                <div class="region">Bayern (Đức)</div>
+                                <span class="tz-pill">Bayern</span>
+                            </div>
                             <div class="time">--:--:--</div>
                             <div class="date">--/--/----</div>
                         </div>
                         <div class="clock-card" id="clock-ma">
-                            <div class="region">Massachusetts (Mỹ)</div>
+                            <div class="clock-card-top">
+                                <span class="clock-flag">🇺🇸</span>
+                                <div class="region">Massachusetts (Mỹ)</div>
+                                <span class="tz-pill">EST / EDT</span>
+                            </div>
                             <div class="time">--:--:--</div>
                             <div class="date">--/--/----</div>
                         </div>
                         <div class="clock-card" id="clock-nv">
-                            <div class="region">Nevada (Mỹ)</div>
+                            <div class="clock-card-top">
+                                <span class="clock-flag">🇺🇸</span>
+                                <div class="region">Nevada (Mỹ)</div>
+                                <span class="tz-pill">PST / PDT</span>
+                            </div>
                             <div class="time">--:--:--</div>
                             <div class="date">--/--/----</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="converter-container">
-                    <h3>Time Converter (Chuyển đổi giờ)</h3>
-                    <p class="subtitle">Mẹo: Chọn ngày & giờ ở một nơi, hệ thống sẽ tự động quy đổi cho 3 nơi còn lại!</p>
+                <!-- Khối Chuyển Đổi Giờ (Converter) -->
+                <div class="surface-card">
+                    <div class="section-header">
+                        <div class="section-title-wrap">
+                            <div class="icon-indicator">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="17 1 21 5 17 9"></polyline>
+                                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                                    <polyline points="7 23 3 19 7 15"></polyline>
+                                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                                </svg>
+                            </div>
+                            <h3>Time Converter (Chuyển đổi giờ)</h3>
+                        </div>
+                    </div>
+                    <p class="subtitle">Chọn ngày &amp; giờ tại bất kỳ địa điểm nào, hệ thống sẽ tự động quy đổi chính xác cho các múi giờ còn lại.</p>
+                    
                     <div class="converter-list">
                         <!-- Việt Nam -->
                         <div class="converter-row" data-tz="Asia/Ho_Chi_Minh">
                             <div class="region-info">
-                                <div class="region-name">Việt Nam</div>
-                                <div class="region-tz">Asia/Ho_Chi_Minh</div>
+                                <div class="region-header">
+                                    <span class="region-flag">🇻🇳</span>
+                                    <span class="region-name">Việt Nam</span>
+                                </div>
+                                <div class="region-tz">Asia/Ho_Chi_Minh (UTC+7)</div>
                             </div>
                             <div class="time-display">
                                 <input type="text" class="converter-fp datetime-input" placeholder="Chọn thời gian...">
                             </div>
                         </div>
 
-                        <!-- Germany -->
+                        <!-- Bayern, Đức -->
                         <div class="converter-row" data-tz="Europe/Berlin">
                             <div class="region-info">
-                                <div class="region-name">Đức</div>
-                                <div class="region-tz">Europe/Berlin</div>
+                                <div class="region-header">
+                                    <span class="region-flag">🇩🇪</span>
+                                    <span class="region-name">Bayern, Đức</span>
+                                </div>
+                                <div class="region-tz">Europe/Berlin (CET/CEST)</div>
                             </div>
                             <div class="time-display">
                                 <input type="text" class="converter-fp datetime-input" placeholder="Chọn thời gian...">
@@ -121,7 +218,10 @@
                         <!-- Massachusetts -->
                         <div class="converter-row" data-tz="America/New_York">
                             <div class="region-info">
-                                <div class="region-name">Massachusetts, Mỹ</div>
+                                <div class="region-header">
+                                    <span class="region-flag">🇺🇸</span>
+                                    <span class="region-name">Massachusetts, Mỹ</span>
+                                </div>
                                 <div class="region-tz">America/New_York (EST/EDT)</div>
                             </div>
                             <div class="time-display">
@@ -132,7 +232,10 @@
                         <!-- Nevada -->
                         <div class="converter-row" data-tz="America/Los_Angeles">
                             <div class="region-info">
-                                <div class="region-name">Nevada, Mỹ</div>
+                                <div class="region-header">
+                                    <span class="region-flag">🇺🇸</span>
+                                    <span class="region-name">Nevada, Mỹ</span>
+                                </div>
                                 <div class="region-tz">America/Los_Angeles (PST/PDT)</div>
                             </div>
                             <div class="time-display">
@@ -147,39 +250,77 @@
             <section id="planning" class="tab-content">
                 <div class="planning-container">
                     <!-- Khu vực nhập lịch -->
-                    <div class="card">
-                        <h3>Khai báo thời gian rảnh của bạn</h3>
-                        <p class="subtitle">Lưu ý: Thời gian sẽ tự động được tính theo múi giờ: <strong id="user-tz-display"></strong></p>
+                    <div class="surface-card">
+                        <div class="section-header">
+                            <div class="section-title-wrap">
+                                <div class="icon-indicator">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </div>
+                                <h3>Khai báo thời gian rảnh</h3>
+                            </div>
+                        </div>
+                        <p class="subtitle">Thời gian được tự động tính theo múi giờ: <strong id="user-tz-display">...</strong></p>
                         
-                        <div class="form-group">
-                            <label>Bắt đầu rảnh từ:</label>
-                            <input type="text" id="plan-start" class="datetime-input" placeholder="Chọn ngày giờ...">
+                        <div class="planning-form-grid">
+                            <div class="form-group">
+                                <label for="plan-start">Bắt đầu rảnh từ:</label>
+                                <input type="text" id="plan-start" class="datetime-input" placeholder="Chọn ngày giờ bắt đầu...">
+                            </div>
+                            <div class="form-group">
+                                <label for="plan-end">Bận (hết rảnh) lúc:</label>
+                                <input type="text" id="plan-end" class="datetime-input" placeholder="Chọn ngày giờ kết thúc...">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Bận (hết rảnh) lúc:</label>
-                            <input type="text" id="plan-end" class="datetime-input" placeholder="Chọn ngày giờ...">
+                        <div class="form-actions">
+                            <button id="btn-submit-plan" class="btn-primary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Lưu lịch rảnh lên hệ thống</span>
+                            </button>
                         </div>
-                        <button id="btn-submit-plan" class="btn-primary">Lưu lịch rảnh</button>
                         <p id="plan-status-msg" class="status-msg"></p>
                     </div>
 
                     <!-- Khu vực hiển thị bảng chung -->
-                    <div class="card">
+                    <div class="surface-card">
                         <div class="board-header">
-                            <h3>Biểu đồ thời gian rảnh chung</h3>
-                            <button id="btn-refresh-board" class="btn-secondary">🔄 Tải lại</button>
+                            <div class="section-title-wrap">
+                                <div class="icon-indicator">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10"></line>
+                                        <line x1="12" y1="20" x2="12" y2="4"></line>
+                                        <line x1="6" y1="20" x2="6" y2="14"></line>
+                                    </svg>
+                                </div>
+                                <h3>Biểu đồ thời gian rảnh chung</h3>
+                            </div>
+                            <button id="btn-refresh-board" class="btn-secondary">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                                <span>Tải lại</span>
+                            </button>
                         </div>
                         
-                        <!-- Biểu đồ Custom Timeline (Cuộn dọc/ngang mượt mà) -->
-                        <div id="custom-timeline-wrapper" style="width: 100%; overflow-x: auto; overflow-y: hidden; margin-bottom: 2rem; border: 1px solid var(--border); border-radius: 8px; background: white;">
-                            <div id="custom-timeline" style="position: relative; min-width: 100%; padding-bottom: 1rem;">
+                        <!-- Biểu đồ Custom Timeline -->
+                        <div id="custom-timeline-wrapper" class="timeline-viewport">
+                            <div id="custom-timeline" class="timeline-canvas" style="position: relative; min-width: 100%; padding-bottom: 1rem;">
                                 <!-- JS sẽ vẽ trục thời gian và các thanh màu vào đây -->
                             </div>
                         </div>
 
                         <!-- Danh sách quản lý lịch cá nhân -->
-                        <div class="my-schedules-container" style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
-                            <h4 style="margin-bottom: 1rem; color: var(--primary);">Lịch bạn đã đăng ký (Dùng để Xóa/Sửa)</h4>
+                        <div class="my-schedules-container">
+                            <div class="sub-section-header">
+                                <h4>Lịch bạn đã đăng ký</h4>
+                                <span class="helper-text">Bấm "Xóa" nếu muốn hủy khoảng thời gian đã tạo</span>
+                            </div>
                             <div id="my-schedule-list" class="schedule-list">
                                 <!-- Dữ liệu sẽ được JavaScript tải vào đây -->
                             </div>
@@ -190,6 +331,6 @@
         </main>
     </div>
 
-    <script src="script_v3.js?v=13"></script>
+    <script src="script_v3.js?v=14"></script>
 </body>
 </html>

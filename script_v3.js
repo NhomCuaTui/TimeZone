@@ -50,7 +50,7 @@ function showApp() {
     const userTzDisplay = document.getElementById('user-tz-display');
     if (userTzDisplay) {
         let regionName = "Việt Nam";
-        if(currentUser.tz === 'Europe/Berlin') regionName = "Đức";
+        if(currentUser.tz === 'Europe/Berlin') regionName = "Bayern, Đức";
         if(currentUser.tz === 'America/New_York') regionName = "Massachusetts, Mỹ";
         if(currentUser.tz === 'America/Los_Angeles') regionName = "Nevada, Mỹ";
         userTzDisplay.textContent = `${currentUser.tz} (${regionName})`;
@@ -433,23 +433,26 @@ async function loadScheduleBoard() {
         crosshair.style.position = 'absolute';
         crosshair.style.top = '0';
         crosshair.style.bottom = '0';
+        crosshair.style.height = '100%';
         crosshair.style.width = '2px';
-        crosshair.style.background = 'rgba(239, 68, 68, 0.7)';
-        crosshair.style.zIndex = '20';
+        crosshair.style.background = 'rgba(239, 68, 68, 0.85)';
+        crosshair.style.zIndex = '30';
         crosshair.style.display = 'none';
         crosshair.style.pointerEvents = 'none';
         
         const crosshairLabel = document.createElement('div');
         crosshairLabel.style.position = 'absolute';
-        crosshairLabel.style.top = '5px';
-        crosshairLabel.style.left = '6px';
+        crosshairLabel.style.top = '6px';
+        crosshairLabel.style.left = '8px';
         crosshairLabel.style.background = '#ef4444';
         crosshairLabel.style.color = 'white';
-        crosshairLabel.style.padding = '4px 8px';
-        crosshairLabel.style.fontSize = '0.85rem';
-        crosshairLabel.style.fontWeight = 'bold';
-        crosshairLabel.style.borderRadius = '4px';
+        crosshairLabel.style.padding = '3px 8px';
+        crosshairLabel.style.fontSize = '0.785rem';
+        crosshairLabel.style.fontWeight = '700';
+        crosshairLabel.style.borderRadius = '6px';
         crosshairLabel.style.whiteSpace = 'nowrap';
+        crosshairLabel.style.boxShadow = '0 2px 6px rgba(0,0,0,0.2)';
+        crosshairLabel.style.pointerEvents = 'none';
         crosshair.appendChild(crosshairLabel);
         
         timelineEl.appendChild(crosshair);
