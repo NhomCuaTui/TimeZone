@@ -135,13 +135,14 @@ function initConverter() {
         const input = row.querySelector('.converter-fp');
         if (!input) return;
         
-        const targetDayjs = now.tz(tz);
+        try {
+            const targetDayjs = now.tz(tz);
         const fakeDate = new Date(
-            targetDayjs.year(),
-            targetDayjs.month(),
-            targetDayjs.date(),
-            targetDayjs.hour(),
-            targetDayjs.minute()
+            parseInt(targetDayjs.format("YYYY"), 10),
+            parseInt(targetDayjs.format("MM"), 10) - 1,
+            parseInt(targetDayjs.format("DD"), 10),
+            parseInt(targetDayjs.format("HH"), 10),
+            parseInt(targetDayjs.format("mm"), 10)
         );
         
         try {
@@ -173,11 +174,11 @@ function initConverter() {
                             if (item.row !== row) {
                                 const targetTzDayjs = realDayjs.tz(item.tz);
                                 const otherFakeDate = new Date(
-                                    targetTzDayjs.year(),
-                                    targetTzDayjs.month(),
-                                    targetTzDayjs.date(),
-                                    targetTzDayjs.hour(),
-                                    targetTzDayjs.minute()
+                                    parseInt(targetTzDayjs.format("YYYY"), 10),
+                                    parseInt(targetTzDayjs.format("MM"), 10) - 1,
+                                    parseInt(targetTzDayjs.format("DD"), 10),
+                                    parseInt(targetTzDayjs.format("HH"), 10),
+                                    parseInt(targetTzDayjs.format("mm"), 10)
                                 );
                                 item.fp.setDate(otherFakeDate, false);
                             }
@@ -193,6 +194,7 @@ function initConverter() {
             converterFpInstances.push({ tz: tz, fp: fp, row: row });
         } catch (e) {
             console.error("Flatpickr Error: ", e);
+            alert("LỖI CONVERTER NGHIÊM TRỌNG: " + e.message);
         }
     });
 }
