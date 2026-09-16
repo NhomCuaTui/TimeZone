@@ -154,6 +154,8 @@ tabBtns.forEach(btn => {
         
         if(targetId === 'planning'){
             loadScheduleBoard();
+        } else if (targetId === 'gallery') {
+            if (typeof loadGallery === 'function') loadGallery();
         }
     });
 });
@@ -522,3 +524,173 @@ async function loadScheduleBoard() {
 }
 
 document.getElementById('btn-refresh-board').addEventListener('click', loadScheduleBoard);
+
+// ==============================================
+// 6. XỬ LÝ GALLERY (THƯ VIỆN ẢNH)
+// ==============================================
+const btnUpload = document.getElementById('btn-upload-image');
+const fileInput = document.getElementById('gallery-upload-input');
+const btnRefreshGallery = document.getElementById('btn-refresh-gallery');
+const galleryGrid = document.getElementById('gallery-grid');
+const galleryStatusMsg = document.getElementById('gallery-status-msg');
+
+function showGalleryMsg(msg, isError = false) {
+    if(!galleryStatusMsg) return;
+    galleryStatusMsg.textContent = msg;
+    galleryStatusMsg.className = isError ? 'status-msg error' : 'status-msg success';
+}
+
+if (btnUpload && fileInput) {
+    btnUpload.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        showGalleryMsg("Đang nén ảnh...", false);
+        
+        try {
+            const compressedBase64 = await compressImage(file, 1200, 1200, 0.8);
+            showGalleryMsg("Đang tải ảnh lên hệ thống...", false);
+            
+            const payload = {
+                action: 'uploadImage',
+                name: currentUser.name,
+                filename: file.name,
+                mimeType: file.type,
+                base64: compressedBase64.split(',')[1]
+            };
+            
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                showGalleryMsg("Đã tải ảnh lên thành công!", false);
+                loadGallery();
+            } else {
+                showGalleryMsg("Lỗi: " + result.error, true);
+            }
+        } catch (error) {
+            console.error(error);
+            showGalleryMsg("Đã xảy ra lỗi khi tải ảnh.", true);
+        }
+        
+        fileInput.value = '';
+    });
+}
+
+if (btnRefreshGallery) {
+    btnRefreshGallery.addEventListener('click', loadGallery);
+}
+
+function compressImage(file, maxWidth, maxHeight, quality) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
+async function loadGallery() {
+    if (!galleryGrid) return;
+    galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center;">Đang tải ảnh...</p>';
+    
+    try {
+        const response = await fetch(API_URL + "?action=getGallery");
+        const images = await response.json();
+        
+        if (!images || images.length === 0) {
+            galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted);">Chưa có ảnh nào trong thư viện.</p>';
+            return;
+        }
+        
+        images.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        galleryGrid.innerHTML = '';
+        
+        images.forEach(img => {
+            const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
+            const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
+            
+            const div = document.createElement('div');
+            div.className = 'gallery-item';
+            div.innerHTML = `
+                <img src="${directImageUrl}" alt="Photo by ${img.name}" loading="lazy" onerror="this.src='https://placehold.co/400x400/1e293b/fff?text=Lỗi+tải+ảnh'">
+                <div class="gallery-overlay">
+                    <button class="btn-delete-img" data-id="${img.id}" title="Xóa ảnh này">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="gallery-info">
+                        <div class="gallery-uploader">${img.name}</div>
+                        <div class="gallery-time">${timeFormatted}</div>
+                    </div>
+                </div>
+            `;
+            
+            div.querySelector('.btn-delete-img').addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!confirm('Bạn có chắc chắn muốn xóa ảnh này không? Tất cả mọi người đều không thấy nữa.')) return;
+                
+                div.style.opacity = '0.5';
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'deleteImage', id: img.id })
+                    });
+                    const resData = await res.json();
+                    if(resData.success) {
+                        div.remove();
+                    } else {
+                        alert("Lỗi khi xóa: " + resData.error);
+                        div.style.opacity = '1';
+                    }
+                } catch (error) {
+                    alert("Lỗi mạng khi xóa ảnh!");
+                    div.style.opacity = '1';
+                }
+            });
+            
+            div.addEventListener('click', () => {
+                window.open(directImageUrl, '_blank');
+            });
+            
+            galleryGrid.appendChild(div);
+        });
+        
+    } catch (error) {
+        galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--danger);">Không thể tải thư viện ảnh.</p>';
+    }
+}

@@ -902,6 +902,91 @@ h3 {
 }
 
 /* ==========================================================================
+   GALLERY TAB STYLES
+   ========================================================================== */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.gallery-item {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-xs);
+    cursor: pointer;
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+.gallery-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.4) 100%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.75rem;
+    color: white;
+}
+
+.gallery-item:hover .gallery-overlay {
+    opacity: 1;
+}
+
+.gallery-info {
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.gallery-uploader {
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.1rem;
+}
+
+.gallery-time {
+    color: rgba(255,255,255,0.8);
+}
+
+.btn-delete-img {
+    align-self: flex-end;
+    background: rgba(220, 38, 38, 0.9);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-delete-img:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
    ANIMATIONS & RESPONSIVE
    ========================================================================== */
 @keyframes pulse {
