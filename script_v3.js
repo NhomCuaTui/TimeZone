@@ -137,15 +137,14 @@ function initConverter() {
         
         try {
             const targetDayjs = now.tz(tz);
-        const fakeDate = new Date(
-            parseInt(targetDayjs.format("YYYY"), 10),
-            parseInt(targetDayjs.format("MM"), 10) - 1,
-            parseInt(targetDayjs.format("DD"), 10),
-            parseInt(targetDayjs.format("HH"), 10),
-            parseInt(targetDayjs.format("mm"), 10)
-        );
-        
-        try {
+            const fakeDate = new Date(
+                parseInt(targetDayjs.format("YYYY"), 10),
+                parseInt(targetDayjs.format("MM"), 10) - 1,
+                parseInt(targetDayjs.format("DD"), 10),
+                parseInt(targetDayjs.format("HH"), 10),
+                parseInt(targetDayjs.format("mm"), 10)
+            );
+            
             const fp = flatpickr(input, {
                 disableMobile: true,
                 enableTime: true,
@@ -153,8 +152,8 @@ function initConverter() {
                 time_24hr: true,
                 altInput: true,
                 altInputClass: 'flatpickr-input altInput',
-                altFormat: "d/m/Y H:i", // GIỐNG HỆT NHƯ BÊN PLANNING
-                defaultDate: fakeDate,  // SỬ DỤNG DATE OBJECT
+                altFormat: "d/m/Y H:i",
+                defaultDate: fakeDate,
                 onChange: function(selectedDates, dateStr, instance) {
                     if (isUpdating || selectedDates.length === 0) return;
                     isUpdating = true;
@@ -185,6 +184,7 @@ function initConverter() {
                         });
                     } catch(e) {
                         console.error("Lỗi quy đổi giờ:", e);
+                        alert("LỖI QUY ĐỔI GIỜ: " + e.message);
                     } finally {
                         isUpdating = false;
                     }
@@ -194,7 +194,7 @@ function initConverter() {
             converterFpInstances.push({ tz: tz, fp: fp, row: row });
         } catch (e) {
             console.error("Flatpickr Error: ", e);
-            alert("LỖI CONVERTER NGHIÊM TRỌNG: " + e.message);
+            alert("LỖI CONVERTER: " + e.message);
         }
     });
 }
