@@ -99,7 +99,7 @@ try {
                 const min = String(localDate.getMinutes()).padStart(2, '0');
 
                 const isoString = `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
-                const realDayjs = dayjs(isoString).tz(tz);
+                const realDayjs = dayjs(isoString).tz(tz, true);
                 
                 document.querySelectorAll('.converter-row').forEach(otherRow => {
                     if (otherRow !== row) {
@@ -235,8 +235,8 @@ document.getElementById('btn-submit-plan').addEventListener('click', async () =>
         const startIso = startVal.replace(' ', 'T') + ':00';
         const endIso = endVal.replace(' ', 'T') + ':00';
         
-        const startObj = dayjs(startIso).tz(currentUser.tz);
-        const endObj = dayjs(endIso).tz(currentUser.tz);
+        const startObj = dayjs(startIso).tz(currentUser.tz, true);
+        const endObj = dayjs(endIso).tz(currentUser.tz, true);
         
         if (endObj.isBefore(startObj) || endObj.isSame(startObj)) {
             msg.textContent = 'Giờ kết thúc phải sau giờ bắt đầu!';

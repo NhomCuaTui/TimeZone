@@ -1,0 +1,23 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
+</head>
+<body>
+    <script>
+        dayjs.extend(window.dayjs_plugin_utc);
+        dayjs.extend(window.dayjs_plugin_timezone);
+
+        try {
+            const d = dayjs.tz("2026-09-27T13:48:00", "Europe/Berlin");
+            console.log("SUCCESS:", d.format());
+            document.write("SUCCESS: " + d.format());
+        } catch (e) {
+            console.error("ERROR:", e);
+            document.write("ERROR: " + e.message);
+        }
+    </script>
+</body>
+</html>
