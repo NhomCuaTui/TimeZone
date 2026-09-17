@@ -309,7 +309,7 @@ function initConverter() {
 // ==============================================
 // 6. XỬ LÝ PLANNING & GOOGLE SHEETS
 // ==============================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbw9_obYD9-zOhE_YHlbjFK-WCLATgd4o0xghVz1RrmFzJCAHmaYE4ZZ_-CdRbgrL23T2Q/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyHsOl7TjPdeyo8kZ-_4I4iICVt9n-jceTrW6p2qtb4fM4ZCHveFR21wBgRGPTx_a5oBw/exec';
 
 const userColors = {
     'Trung': '#ef4444', 'Q.Minh': '#f97316', 'An': '#eab308', 
