@@ -730,6 +730,105 @@ function toggleLike(imgId, e) {
     }).catch(err => console.warn('Lỗi đồng bộ like lên server:', err));
 }
 
+// Danh mục thông tin chi tiết thành viên (Flag, Region, Color)
+const userDirectory = {
+    'Trung': { flag: '🇻🇳', region: 'Việt Nam · UTC+7', color: '#ef4444' },
+    'Q.Minh': { flag: '🇻🇳', region: 'Việt Nam · UTC+7', color: '#f97316' },
+    'An': { flag: '🇻🇳', region: 'Việt Nam · UTC+7', color: '#eab308' },
+    'Hiếu': { flag: '🇩🇪', region: 'Bayern, Đức · UTC+2', color: '#22c55e' },
+    'Đạt': { flag: '🇩🇪', region: 'Bayern, Đức · UTC+2', color: '#14b8a6' },
+    'G.Minh': { flag: '🇺🇸', region: 'Massachusetts, Mỹ · UTC-4', color: '#3b82f6' },
+    'Bửu': { flag: '🇺🇸', region: 'Nevada, Mỹ · UTC-7', color: '#8b5cf6' },
+    'Khang': { flag: '🇻🇳', region: 'Việt Nam · UTC+7', color: '#ec4899' }
+};
+
+function formatHeartedSummary(users) {
+    if (!users || !users.length) return 'Chưa có ai thả tim';
+    if (users.length === 1) return `Thả tim bởi <strong>${users[0]}</strong>`;
+    if (users.length === 2) return `Thả tim bởi <strong>${users[0]}</strong> và <strong>${users[1]}</strong>`;
+    if (users.length === 3) return `Thả tim bởi <strong>${users[0]}</strong>, <strong>${users[1]}</strong> và <strong>${users[2]}</strong>`;
+    return `Thả tim bởi <strong>${users[0]}</strong>, <strong>${users[1]}</strong> và <strong>${users.length - 2} người khác</strong>`;
+}
+
+function formatCardHeartedSummary(users) {
+    if (!users || !users.length) return '';
+    if (users.length === 1) return users[0];
+    if (users.length === 2) return `${users[0]}, ${users[1]}`;
+    return `${users[0]}, ${users[1]} +${users.length - 2}`;
+}
+
+// Quản lý Modal "Hearted by" (Danh sách người đã thả tim)
+let currentHeartedModalId = null;
+const heartedByModal = document.getElementById('hearted-by-modal');
+const heartedBySubtitle = document.getElementById('hearted-by-subtitle');
+const heartedByList = document.getElementById('hearted-by-list');
+const heartedByClose = document.getElementById('hearted-by-close');
+const heartedByDoneBtn = document.getElementById('hearted-by-done-btn');
+
+function openHeartedByModal(imgId) {
+    currentHeartedModalId = imgId;
+    renderHeartedByModalContent(imgId);
+    if (heartedByModal) heartedByModal.style.display = 'flex';
+}
+
+function closeHeartedByModal() {
+    currentHeartedModalId = null;
+    if (heartedByModal) heartedByModal.style.display = 'none';
+}
+
+if (heartedByClose) heartedByClose.addEventListener('click', closeHeartedByModal);
+if (heartedByDoneBtn) heartedByDoneBtn.addEventListener('click', closeHeartedByModal);
+if (heartedByModal) {
+    heartedByModal.addEventListener('click', (e) => {
+        if (e.target === heartedByModal) closeHeartedByModal();
+    });
+}
+
+function renderHeartedByModalContent(imgId) {
+    if (!heartedByList) return;
+    const likesMap = getLikesMap();
+    const likeData = likesMap[imgId] || { count: 0, users: [] };
+    const users = Array.isArray(likeData.users) ? likeData.users : [];
+    
+    if (heartedBySubtitle) {
+        heartedBySubtitle.textContent = `${users.length} thành viên`;
+    }
+    
+    if (!users.length) {
+        heartedByList.innerHTML = `
+            <div class="hearted-by-empty">
+                <span style="font-size: 2rem;">🤍</span>
+                <p>Chưa có ai thả tim cho bức ảnh/video này.<br>Hãy là người đầu tiên thả tim nhé!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    users.forEach(userName => {
+        const info = userDirectory[userName] || { flag: '👤', region: 'Thành viên nhóm', color: '#6366f1' };
+        const initial = userName ? userName.charAt(0).toUpperCase() : '?';
+        html += `
+            <div class="hearted-user-row">
+                <div class="hearted-user-left">
+                    <div class="hearted-user-avatar" style="background-color: ${info.color};">
+                        ${initial}
+                    </div>
+                    <div class="hearted-user-info">
+                        <div class="hearted-user-name">
+                            <span>${userName}</span>
+                            <span class="hearted-user-flag">${info.flag}</span>
+                        </div>
+                        <div class="hearted-user-region">${info.region}</div>
+                    </div>
+                </div>
+                <span class="hearted-user-badge">❤️ Đã thích</span>
+            </div>
+        `;
+    });
+    heartedByList.innerHTML = html;
+}
+
 function updateLikeUI(imgId, isLiked, count, users) {
     const userList = Array.isArray(users) ? users : [];
     const tooltipText = userList.length > 0 
@@ -753,20 +852,47 @@ function updateLikeUI(imgId, isLiked, count, users) {
         btn.title = tooltipText;
     });
     
+    // Cập nhật thẻ tóm tắt Hearted By trên thẻ Gallery
+    const cardSummaryEl = document.querySelector(`[data-hearted-summary-id="${imgId}"]`);
+    if (cardSummaryEl) {
+        if (userList.length > 0) {
+            cardSummaryEl.style.display = 'inline-flex';
+            const nameSpan = cardSummaryEl.querySelector('.hearted-names');
+            if (nameSpan) nameSpan.textContent = formatCardHeartedSummary(userList);
+        } else {
+            cardSummaryEl.style.display = 'none';
+        }
+    }
+    
     // Cập nhật Lightbox nếu đang mở bức ảnh này
     const lightboxLikeBtn = document.getElementById('lightbox-like-btn');
     const lightboxLikeCount = document.getElementById('lightbox-like-count');
-    if (lightboxLikeBtn && activeLightboxIndex !== -1) {
+    const lightboxHeartedBar = document.getElementById('lightbox-hearted-bar');
+    const lightboxHeartedText = document.getElementById('lightbox-hearted-text');
+    
+    if (activeLightboxIndex !== -1) {
         const list = filteredImages.length ? filteredImages : allImages;
         if (list[activeLightboxIndex]?.id === imgId) {
-            if (isLiked) {
-                lightboxLikeBtn.classList.add('heart-liked');
-            } else {
-                lightboxLikeBtn.classList.remove('heart-liked');
+            if (lightboxLikeBtn) {
+                if (isLiked) {
+                    lightboxLikeBtn.classList.add('heart-liked');
+                } else {
+                    lightboxLikeBtn.classList.remove('heart-liked');
+                }
+                lightboxLikeBtn.title = tooltipText;
             }
             if (lightboxLikeCount) lightboxLikeCount.textContent = count;
-            lightboxLikeBtn.title = tooltipText;
+            
+            if (lightboxHeartedBar && lightboxHeartedText) {
+                lightboxHeartedBar.style.display = 'inline-flex';
+                lightboxHeartedText.innerHTML = formatHeartedSummary(userList);
+            }
         }
+    }
+    
+    // Cập nhật modal Hearted By nếu đang mở cho ảnh này
+    if (currentHeartedModalId === imgId) {
+        renderHeartedByModalContent(imgId);
     }
 }
 
@@ -864,6 +990,14 @@ function openLightbox(index) {
     }
     lightboxLikeBtn.title = tooltipText;
     
+    // Cập nhật thanh danh sách Hearted By trong Lightbox
+    const lightboxHeartedBar = document.getElementById('lightbox-hearted-bar');
+    const lightboxHeartedText = document.getElementById('lightbox-hearted-text');
+    if (lightboxHeartedBar && lightboxHeartedText) {
+        lightboxHeartedBar.style.display = 'inline-flex';
+        lightboxHeartedText.innerHTML = formatHeartedSummary(users);
+    }
+    
     lightboxModal.style.display = 'flex';
 }
 
@@ -876,6 +1010,28 @@ function closeLightbox() {
         lightboxNativeVideo.src = '';
     }
     if (lightboxVideoFrame) lightboxVideoFrame.src = '';
+}
+
+// Bắt sự kiện xem danh sách Hearted By từ Lightbox
+const lightboxHeartedBar = document.getElementById('lightbox-hearted-bar');
+if (lightboxHeartedBar) {
+    lightboxHeartedBar.addEventListener('click', (e) => {
+        const list = filteredImages.length ? filteredImages : allImages;
+        if (activeLightboxIndex !== -1 && list[activeLightboxIndex]) {
+            openHeartedByModal(list[activeLightboxIndex].id);
+        }
+    });
+}
+if (lightboxLikeCount) {
+    lightboxLikeCount.style.cursor = 'pointer';
+    lightboxLikeCount.title = 'Xem danh sách người đã thả tim';
+    lightboxLikeCount.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const list = filteredImages.length ? filteredImages : allImages;
+        if (activeLightboxIndex !== -1 && list[activeLightboxIndex]) {
+            openHeartedByModal(list[activeLightboxIndex].id);
+        }
+    });
 }
 
 function nextLightboxImage() {
@@ -1180,10 +1336,14 @@ function applyGalleryFilters(resetTimelineToNewest = false) {
     const advancedVal = filterAdvanced ? filterAdvanced.value : 'all';
     const userVal = filterUser ? filterUser.value : '';
     
-    // Toggle dropdown chọn người đăng
+    // Toggle dropdown chọn thành viên (người đăng / người thả tim)
     if (filterUserContainer) {
-        if (advancedVal === 'posted_by') {
+        if (advancedVal === 'posted_by' || advancedVal === 'hearted_by') {
             filterUserContainer.style.display = 'inline-flex';
+            const filterUserLabel = document.getElementById('filter-user-label-text');
+            if (filterUserLabel) {
+                filterUserLabel.textContent = advancedVal === 'hearted_by' ? 'Người thả tim:' : 'Người đăng:';
+            }
         } else {
             filterUserContainer.style.display = 'none';
         }
@@ -1195,6 +1355,18 @@ function applyGalleryFilters(resetTimelineToNewest = false) {
     if (advancedVal === 'posted_by') {
         if (userVal) {
             result = result.filter(img => img.name === userVal);
+        } else {
+            result = [];
+        }
+    } else if (advancedVal === 'hearted_by') {
+        if (userVal) {
+            const likesMap = getLikesMap();
+            result = result.filter(img => {
+                const item = likesMap[img.id];
+                return item && Array.isArray(item.users) && item.users.includes(userVal);
+            });
+        } else {
+            result = [];
         }
     } else if (advancedVal === 'my_hearted') {
         const likesMap = getLikesMap();
@@ -1221,14 +1393,20 @@ function applyGalleryFilters(resetTimelineToNewest = false) {
     galleryGrid.innerHTML = '';
     
     if (filteredImages.length === 0) {
-        let emptyMsg = 'Chưa có ảnh nào trong thư viện.';
+        let emptyMsg = 'Chưa có ảnh/video nào trong thư viện.';
         if (advancedVal === 'my_hearted') {
-            emptyMsg = 'Bạn chưa thả tim cho bức ảnh nào. Hãy bấm biểu tượng trái tim trên ảnh để lưu lại!';
+            emptyMsg = 'Bạn chưa thả tim cho ảnh/video nào. Hãy bấm biểu tượng trái tim trên ảnh để lưu lại!';
         } else if (advancedVal === 'posted_by') {
             if (userVal) {
-                emptyMsg = `Chưa có ảnh nào được đăng bởi <strong>${userVal}</strong>.`;
+                emptyMsg = `Chưa có ảnh/video nào được đăng bởi <strong>${userVal}</strong>.`;
             } else {
-                emptyMsg = 'Vui lòng chọn một thành viên trong danh sách để xem ảnh.';
+                emptyMsg = 'Vui lòng chọn một thành viên trong danh sách để xem ảnh/video.';
+            }
+        } else if (advancedVal === 'hearted_by') {
+            if (userVal) {
+                emptyMsg = `Chưa có ảnh/video nào được thả tim bởi <strong>${userVal}</strong>.`;
+            } else {
+                emptyMsg = 'Vui lòng chọn một thành viên trong danh sách để xem ảnh/video họ đã thả tim.';
             }
         }
         galleryGrid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted); padding: 2rem 1rem;">${emptyMsg}</p>`;
@@ -1358,15 +1536,37 @@ function renderNextImages() {
                 <div class="gallery-info">
                     <div class="gallery-uploader">${img.name}</div>
                     <div class="gallery-time">${timeFormatted}</div>
+                    <div class="gallery-hearted-summary" data-hearted-summary-id="${img.id}" style="${users.length > 0 ? '' : 'display: none;'}" title="Xem danh sách người đã thả tim">
+                        <span class="heart-mini">❤️</span>
+                        <span class="hearted-names">${formatCardHeartedSummary(users)}</span>
+                    </div>
                 </div>
             </div>
         `;
         
-        // Like click handler
+        // Like click handler (Heart icon toggles like)
         const likeBtn = div.querySelector('.btn-like-overlay');
         if (likeBtn) {
             likeBtn.addEventListener('click', (e) => {
                 toggleLike(img.id, e);
+            });
+        }
+        
+        // Click like count directly opens Hearted By modal
+        const likeCountEl = div.querySelector('.like-count');
+        if (likeCountEl) {
+            likeCountEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openHeartedByModal(img.id);
+            });
+        }
+        
+        // Click hearted summary chip opens Hearted By modal
+        const summaryBtn = div.querySelector('.gallery-hearted-summary');
+        if (summaryBtn) {
+            summaryBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openHeartedByModal(img.id);
             });
         }
         
