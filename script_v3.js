@@ -164,6 +164,9 @@ function showApp() {
     if(document.getElementById('planning').classList.contains('active')){
         loadScheduleBoard();
     }
+    if(document.getElementById('gallery') && document.getElementById('gallery').classList.contains('active')){
+        applyGalleryFilters(false);
+    }
 }
 
 // ==============================================
@@ -657,11 +660,19 @@ document.getElementById('btn-refresh-board').addEventListener('click', () => {
 });
 
 // ==============================================
-// 7. XỬ LÝ REACTIONS (LƯỢT THÍCH / THẢ TIM)
+// 7. XỬ LÝ REACTIONS (LƯỢT THÍCH / THẢ TIM TÁCH BIỆT TỪNG NGƯỜI)
 // ==============================================
 function getLikesMap() {
     try {
-        return JSON.parse(localStorage.getItem('timeSync_likes') || '{}');
+        const raw = JSON.parse(localStorage.getItem('timeSync_likes') || '{}');
+        // Tương thích ngược: chuyển đổi dữ liệu cũ nếu chưa có mảng users
+        for (const k in raw) {
+            if (raw[k] && !Array.isArray(raw[k].users)) {
+                raw[k].users = raw[k].liked && currentUser?.name ? [currentUser.name] : [];
+                raw[k].count = raw[k].users.length || (raw[k].count || 0);
+            }
+        }
+        return raw;
     } catch(e) {
         return {};
     }
@@ -673,42 +684,90 @@ function saveLikesMap(map) {
 
 function toggleLike(imgId, e) {
     if (e) e.stopPropagation();
-    const likesMap = getLikesMap();
-    const current = likesMap[imgId] || { count: 0, liked: false };
+    if (!currentUser || !currentUser.name) {
+        Toast.show("Vui lòng đăng nhập chọn tên trước khi thả tim!", "warning");
+        return;
+    }
     
-    current.liked = !current.liked;
-    current.count = current.liked ? (current.count + 1) : Math.max(0, current.count - 1);
+    const likesMap = getLikesMap();
+    let current = likesMap[imgId];
+    if (!current || !Array.isArray(current.users)) {
+        current = {
+            users: current && current.liked ? [currentUser.name] : [],
+            count: current ? (current.count || 0) : 0
+        };
+    }
+    
+    const userIndex = current.users.indexOf(currentUser.name);
+    let nowLiked = false;
+    if (userIndex !== -1) {
+        // Đã thả tim -> Hủy tim của người này
+        current.users.splice(userIndex, 1);
+        nowLiked = false;
+    } else {
+        // Chưa thả tim -> Thêm tim của người này
+        current.users.push(currentUser.name);
+        nowLiked = true;
+    }
+    current.count = current.users.length;
+    current.liked = nowLiked;
     
     likesMap[imgId] = current;
     saveLikesMap(likesMap);
     
-    // Update all UI elements representing this like
+    // Cập nhật giao diện lập tức (Grid & Lightbox)
+    updateLikeUI(imgId, nowLiked, current.count, current.users);
+    
+    // Đồng bộ danh sách tim lên Google Apps Script
+    fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+            action: 'likeMedia',
+            id: imgId,
+            user: currentUser.name,
+            liked: nowLiked
+        })
+    }).catch(err => console.warn('Lỗi đồng bộ like lên server:', err));
+}
+
+function updateLikeUI(imgId, isLiked, count, users) {
+    const userList = Array.isArray(users) ? users : [];
+    const tooltipText = userList.length > 0 
+        ? `Đã thả tim: ${userList.join(', ')}` 
+        : 'Thả tim';
+        
+    // Cập nhật tất cả các nút like của ảnh này trên Gallery Grid
     document.querySelectorAll(`[data-like-id="${imgId}"]`).forEach(btn => {
-        if (current.liked) {
+        if (isLiked) {
             btn.classList.add('heart-liked');
         } else {
             btn.classList.remove('heart-liked');
         }
+        const heartSvg = btn.querySelector('.heart-icon');
+        if (heartSvg) {
+            heartSvg.setAttribute('fill', isLiked ? '#ef4444' : 'none');
+            heartSvg.setAttribute('stroke', isLiked ? '#ef4444' : 'currentColor');
+        }
         const countEl = btn.querySelector('.like-count');
-        if (countEl) countEl.textContent = current.count;
+        if (countEl) countEl.textContent = count;
+        btn.title = tooltipText;
     });
     
-    // Update lightbox like button if open
+    // Cập nhật Lightbox nếu đang mở bức ảnh này
     const lightboxLikeBtn = document.getElementById('lightbox-like-btn');
-    if (lightboxLikeBtn && activeLightboxIndex !== -1 && allImages[activeLightboxIndex]?.id === imgId) {
-        if (current.liked) {
-            lightboxLikeBtn.classList.add('heart-liked');
-        } else {
-            lightboxLikeBtn.classList.remove('heart-liked');
+    const lightboxLikeCount = document.getElementById('lightbox-like-count');
+    if (lightboxLikeBtn && activeLightboxIndex !== -1) {
+        const list = filteredImages.length ? filteredImages : allImages;
+        if (list[activeLightboxIndex]?.id === imgId) {
+            if (isLiked) {
+                lightboxLikeBtn.classList.add('heart-liked');
+            } else {
+                lightboxLikeBtn.classList.remove('heart-liked');
+            }
+            if (lightboxLikeCount) lightboxLikeCount.textContent = count;
+            lightboxLikeBtn.title = tooltipText;
         }
-        document.getElementById('lightbox-like-count').textContent = current.count;
     }
-    
-    // Non-blocking sync to backend
-    fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'likeImage', id: imgId, liked: current.liked })
-    }).catch(() => {});
 }
 
 // ==============================================
@@ -725,6 +784,9 @@ const lightboxDownload = document.getElementById('lightbox-download');
 const lightboxClose = document.getElementById('lightbox-close');
 const lightboxPrev = document.getElementById('lightbox-prev');
 const lightboxNext = document.getElementById('lightbox-next');
+const lightboxVideoContainer = document.getElementById('lightbox-video-container');
+const lightboxVideoFrame = document.getElementById('lightbox-video-frame');
+const lightboxNativeVideo = document.getElementById('lightbox-native-video');
 
 function openLightbox(index) {
     const list = filteredImages.length ? filteredImages : allImages;
@@ -732,22 +794,75 @@ function openLightbox(index) {
     activeLightboxIndex = index;
     
     const img = list[index];
+    let savedVideoIds = [];
+    try {
+        savedVideoIds = JSON.parse(localStorage.getItem('timeSync_video_ids') || '[]');
+    } catch(e) {}
+    const isVideo = img.type === 'video' || savedVideoIds.includes(img.id);
     const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
-    const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
+    const directStreamUrl = "https://drive.google.com/uc?export=download&id=" + img.id;
+    const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm · DD/MM/YYYY');
     
-    lightboxImg.src = directImageUrl;
+    if (isVideo) {
+        if (lightboxImg) lightboxImg.style.display = 'none';
+        if (lightboxVideoContainer) lightboxVideoContainer.style.display = 'flex';
+        
+        const driveViewUrl = "https://drive.google.com/file/d/" + img.id + "/view";
+        const driveDownloadUrl = "https://drive.google.com/uc?export=download&id=" + img.id;
+        const drivePreviewUrl = "https://drive.google.com/file/d/" + img.id + "/preview";
+        
+        const openDriveBtn = document.getElementById('lightbox-open-drive-btn');
+        if (openDriveBtn) openDriveBtn.href = driveViewUrl;
+        
+        const downloadVideoBtn = document.getElementById('lightbox-download-video-btn');
+        if (downloadVideoBtn) downloadVideoBtn.href = driveDownloadUrl;
+        
+        if (lightboxNativeVideo) {
+            lightboxNativeVideo.style.display = 'none';
+            lightboxNativeVideo.src = '';
+        }
+        
+        if (lightboxVideoFrame) {
+            lightboxVideoFrame.style.display = 'block';
+            if (lightboxVideoFrame.src !== drivePreviewUrl) {
+                lightboxVideoFrame.src = drivePreviewUrl;
+            }
+        }
+        
+        lightboxDownload.href = driveViewUrl;
+        lightboxDownload.title = "Mở xem video trên Google Drive";
+    } else {
+        if (lightboxVideoContainer) lightboxVideoContainer.style.display = 'none';
+        if (lightboxNativeVideo) {
+            lightboxNativeVideo.pause();
+            lightboxNativeVideo.src = '';
+        }
+        if (lightboxVideoFrame) lightboxVideoFrame.src = '';
+        if (lightboxImg) {
+            lightboxImg.style.display = 'block';
+            lightboxImg.src = directImageUrl;
+        }
+        lightboxDownload.href = directImageUrl;
+        lightboxDownload.title = "Mở file gốc trong tab mới";
+    }
+    
     lightboxUploader.textContent = img.name;
     lightboxTime.textContent = timeFormatted;
-    lightboxDownload.href = directImageUrl;
     
     const likesMap = getLikesMap();
-    const likeData = likesMap[img.id] || { count: 0, liked: false };
-    lightboxLikeCount.textContent = likeData.count;
-    if (likeData.liked) {
+    const likeData = likesMap[img.id] || { count: 0, users: [] };
+    const users = Array.isArray(likeData.users) ? likeData.users : (likeData.liked && currentUser?.name ? [currentUser.name] : []);
+    const isLiked = currentUser?.name ? users.includes(currentUser.name) : Boolean(likeData.liked);
+    const likeCount = users.length || likeData.count || 0;
+    const tooltipText = users.length > 0 ? `Đã thả tim: ${users.join(', ')}` : 'Thả tim';
+    
+    lightboxLikeCount.textContent = likeCount;
+    if (isLiked) {
         lightboxLikeBtn.classList.add('heart-liked');
     } else {
         lightboxLikeBtn.classList.remove('heart-liked');
     }
+    lightboxLikeBtn.title = tooltipText;
     
     lightboxModal.style.display = 'flex';
 }
@@ -755,7 +870,12 @@ function openLightbox(index) {
 function closeLightbox() {
     activeLightboxIndex = -1;
     lightboxModal.style.display = 'none';
-    lightboxImg.src = '';
+    if (lightboxImg) lightboxImg.src = '';
+    if (lightboxNativeVideo) {
+        lightboxNativeVideo.pause();
+        lightboxNativeVideo.src = '';
+    }
+    if (lightboxVideoFrame) lightboxVideoFrame.src = '';
 }
 
 function nextLightboxImage() {
@@ -861,6 +981,138 @@ if (btnUpload && fileInput) {
     });
 }
 
+// ==============================================
+// 9.1 XỬ LÝ UPLOAD VIDEO (RESUMABLE UPLOAD LÊN DRIVE)
+// ==============================================
+const btnUploadVideo = document.getElementById('btn-upload-video');
+const videoFileInput = document.getElementById('gallery-video-upload-input');
+const videoUploadModal = document.getElementById('video-upload-modal');
+const videoUploadFilename = document.getElementById('video-upload-filename');
+const videoProgressBar = document.getElementById('video-progress-bar');
+const videoProgressPercent = document.getElementById('video-progress-percent');
+const videoProgressStatus = document.getElementById('video-progress-status');
+
+if (btnUploadVideo && videoFileInput) {
+    btnUploadVideo.addEventListener('click', () => videoFileInput.click());
+    
+    videoFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Giới hạn dung lượng tối đa 35MB cho tải trực tiếp lên Google Drive qua Web App
+        const MAX_SIZE_MB = 35;
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+            Toast.show(`Video vượt quá giới hạn (${MAX_SIZE_MB}MB)! Để tải lên ổn định qua Drive, vui lòng chọn clip dưới ${MAX_SIZE_MB}MB.`, 'error');
+            videoFileInput.value = '';
+            return;
+        }
+        
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        if (videoUploadFilename) videoUploadFilename.textContent = `${file.name} (${sizeMb} MB)`;
+        if (videoProgressBar) videoProgressBar.style.width = '5%';
+        if (videoProgressPercent) videoProgressPercent.textContent = '5%';
+        if (videoProgressStatus) videoProgressStatus.textContent = 'Đang đọc dữ liệu video...';
+        if (videoUploadModal) videoUploadModal.style.display = 'flex';
+        
+        // Cảnh báo người dùng nếu vô tình tắt trang
+        const beforeUnloadHandler = (ev) => {
+            ev.preventDefault();
+            ev.returnValue = '';
+        };
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+        
+        try {
+            // Bước 1: Đọc file video thành chuỗi Base64
+            const base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const readPercent = Math.round((event.loaded / event.total) * 35);
+                        if (videoProgressBar) videoProgressBar.style.width = `${readPercent}%`;
+                        if (videoProgressPercent) videoProgressPercent.textContent = `${readPercent}%`;
+                        const readMb = (event.loaded / (1024 * 1024)).toFixed(1);
+                        if (videoProgressStatus) videoProgressStatus.textContent = `Đang xử lý file: ${readMb} MB / ${sizeMb} MB`;
+                    }
+                };
+                reader.onload = () => {
+                    const res = reader.result;
+                    const base64 = res.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error('Không thể đọc dữ liệu video từ thiết bị'));
+                reader.readAsDataURL(file);
+            });
+            
+            if (videoProgressStatus) videoProgressStatus.textContent = 'Đang truyền dữ liệu lên Google Drive...';
+            if (videoProgressBar) videoProgressBar.style.width = '45%';
+            if (videoProgressPercent) videoProgressPercent.textContent = '45%';
+            
+            // Bước 2: Tải lên Google Drive bằng fetch() (tự động theo dõi redirect 302 an toàn)
+            const payload = JSON.stringify({
+                action: 'uploadImage',
+                name: currentUser.name,
+                filename: file.name,
+                mimeType: file.type || 'video/mp4',
+                mediaType: 'video',
+                base64: base64Data
+            });
+            
+            // Hiệu ứng tiến trình mượt mà khi dữ liệu đang truyền tải
+            let uploadProgress = 45;
+            const progressTimer = setInterval(() => {
+                if (uploadProgress < 92) {
+                    uploadProgress += Math.floor(Math.random() * 4) + 2;
+                    if (uploadProgress > 92) uploadProgress = 92;
+                    if (videoProgressBar) videoProgressBar.style.width = `${uploadProgress}%`;
+                    if (videoProgressPercent) videoProgressPercent.textContent = `${uploadProgress}%`;
+                    if (videoProgressStatus) videoProgressStatus.textContent = `Đang đồng bộ vào Google Drive: ${uploadProgress}%...`;
+                }
+            }, 350);
+            
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: payload
+            });
+            
+            clearInterval(progressTimer);
+            if (videoProgressBar) videoProgressBar.style.width = '100%';
+            if (videoProgressPercent) videoProgressPercent.textContent = '100%';
+            if (videoProgressStatus) videoProgressStatus.textContent = 'Đang hoàn tất lưu vào thư viện...';
+            
+            const resData = await response.json();
+            if (!resData.success) {
+                throw new Error(resData.error || 'Lỗi khi lưu video lên Google Apps Script');
+            }
+            
+            // Lưu ID của video vào danh sách video đã tải
+            if (resData.id) {
+                let savedIds = [];
+                try {
+                    savedIds = JSON.parse(localStorage.getItem('timeSync_video_ids') || '[]');
+                } catch(e) {}
+                if (!savedIds.includes(resData.id)) {
+                    savedIds.push(resData.id);
+                    localStorage.setItem('timeSync_video_ids', JSON.stringify(savedIds));
+                }
+            }
+            
+            Toast.show('Đã tải video lên Google Drive thành công!', 'success');
+            setTimeout(() => {
+                if (videoUploadModal) videoUploadModal.style.display = 'none';
+                loadGallery();
+            }, 600);
+            
+        } catch (error) {
+            console.error('Lỗi tải video:', error);
+            Toast.show('Lỗi tải video: ' + error.message, 'error');
+            if (videoUploadModal) videoUploadModal.style.display = 'none';
+        } finally {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            videoFileInput.value = '';
+        }
+    });
+}
+
 if (btnRefreshGallery) {
     btnRefreshGallery.addEventListener('click', () => {
         Toast.show("Đang làm mới thư viện ảnh...", "info");
@@ -946,7 +1198,14 @@ function applyGalleryFilters(resetTimelineToNewest = false) {
         }
     } else if (advancedVal === 'my_hearted') {
         const likesMap = getLikesMap();
-        result = result.filter(img => likesMap[img.id] && likesMap[img.id].liked);
+        result = result.filter(img => {
+            const item = likesMap[img.id];
+            if (!item) return false;
+            if (Array.isArray(item.users)) {
+                return currentUser?.name ? item.users.includes(currentUser.name) : false;
+            }
+            return Boolean(item.liked);
+        });
     }
     
     // 2. Áp dụng Timeline Sort
@@ -1020,6 +1279,20 @@ async function loadGallery() {
         
         allImages = images;
         localStorage.setItem('timeSync_gallery_cache', JSON.stringify(images));
+        
+        // Đồng bộ danh sách tim từ Google Sheet vào likesMap
+        const likesMap = getLikesMap();
+        images.forEach(img => {
+            if (img.likes && Array.isArray(img.likes)) {
+                likesMap[img.id] = {
+                    users: img.likes,
+                    count: img.likes.length,
+                    liked: currentUser?.name ? img.likes.includes(currentUser.name) : false
+                };
+            }
+        });
+        saveLikesMap(likesMap);
+        
         applyGalleryFilters(false);
         
     } catch (error) {
@@ -1040,32 +1313,48 @@ function renderNextImages() {
     
     for (let i = currentImageIndex; i < nextLimit; i++) {
         const img = list[i];
-        const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
+        let savedVideoIds = [];
+        try {
+            savedVideoIds = JSON.parse(localStorage.getItem('timeSync_video_ids') || '[]');
+        } catch(e) {}
+        const isVideo = img.type === 'video' || savedVideoIds.includes(img.id);
+        const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm · DD/MM/YYYY');
         const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
-        const likeData = likesMap[img.id] || { count: 0, liked: false };
-        const isLiked = likeData.liked;
-        const likeCount = likeData.count;
+        const likeData = likesMap[img.id] || { count: 0, users: [] };
+        const users = Array.isArray(likeData.users) ? likeData.users : (likeData.liked && currentUser?.name ? [currentUser.name] : []);
+        const isLiked = currentUser?.name ? users.includes(currentUser.name) : Boolean(likeData.liked);
+        const likeCount = users.length || likeData.count || 0;
+        const tooltipText = users.length > 0 ? `Đã thả tim: ${users.join(', ')}` : 'Thả tim';
         const capturedIndex = i;
+        
+        const videoBadgeHtml = isVideo ? `<span class="video-badge">▶ Video</span>` : '';
+        const videoPlayCenterHtml = isVideo ? `
+            <div class="video-play-center" title="Phát video">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </div>
+        ` : '';
         
         const div = document.createElement('div');
         div.className = 'gallery-item';
         div.innerHTML = `
-            <img src="${directImageUrl}" alt="Photo by ${img.name}" loading="lazy" onerror="this.src='https://placehold.co/400x400/1e293b/fff?text=Lỗi+tải+ảnh'">
+            <img src="${directImageUrl}" alt="${isVideo ? 'Video' : 'Photo'} by ${img.name}" loading="lazy" onerror="this.src='https://placehold.co/400x400/1e293b/fff?text=${isVideo ? 'Video' : 'Lỗi+tải+ảnh'}'">
+            ${videoBadgeHtml}
+            ${videoPlayCenterHtml}
             <div class="gallery-actions-top">
-                <button class="btn-like-overlay ${isLiked ? 'heart-liked' : ''}" data-like-id="${img.id}" title="Thả tim">
+                <button class="btn-like-overlay ${isLiked ? 'heart-liked' : ''}" data-like-id="${img.id}" title="${tooltipText}">
                     <svg class="heart-icon" width="14" height="14" viewBox="0 0 24 24" fill="${isLiked ? '#ef4444' : 'none'}" stroke="${isLiked ? '#ef4444' : 'currentColor'}" stroke-width="2.2">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
                     <span class="like-count">${likeCount}</span>
                 </button>
-            </div>
-            <div class="gallery-overlay">
-                <button class="btn-delete-img" data-id="${img.id}" title="Xóa ảnh này">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <button class="btn-delete-img" data-id="${img.id}" title="Xóa mục này">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
                 </button>
+            </div>
+            <div class="gallery-overlay">
                 <div class="gallery-info">
                     <div class="gallery-uploader">${img.name}</div>
                     <div class="gallery-time">${timeFormatted}</div>
@@ -1084,7 +1373,7 @@ function renderNextImages() {
         // Delete click handler (Custom Async Modal)
         div.querySelector('.btn-delete-img').addEventListener('click', async (e) => {
             e.stopPropagation();
-            const confirmed = await customConfirm('Bạn có chắc chắn muốn xóa ảnh này không? Tất cả mọi người đều không thấy nữa.', 'Xóa ảnh');
+            const confirmed = await customConfirm('Bạn có chắc chắn muốn xóa mục này không? Tất cả mọi người đều không thấy nữa.', 'Xóa media');
             if (!confirmed) return;
             
             div.style.opacity = '0.4';

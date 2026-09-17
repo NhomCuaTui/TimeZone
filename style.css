@@ -1045,14 +1045,15 @@ h3 {
 .gallery-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.4) 100%);
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
     opacity: 0;
     transition: opacity 0.2s ease;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: 0.75rem;
     color: white;
+    pointer-events: none;
 }
 
 .gallery-item:hover .gallery-overlay {
@@ -1062,12 +1063,16 @@ h3 {
 .gallery-info {
     font-size: 0.75rem;
     line-height: 1.4;
+    pointer-events: auto;
 }
 
 .gallery-uploader {
     font-weight: 700;
     font-size: 0.85rem;
     margin-bottom: 0.1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .gallery-time {
@@ -1075,23 +1080,31 @@ h3 {
 }
 
 .btn-delete-img {
-    align-self: flex-end;
-    background: rgba(220, 38, 38, 0.9);
+    background: rgba(220, 38, 38, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
     width: 28px;
     height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    opacity: 0;
+    transform: scale(0.85);
+}
+
+.gallery-item:hover .btn-delete-img {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .btn-delete-img:hover {
     background: #ef4444;
-    transform: scale(1.1);
+    transform: scale(1.15);
 }
 
 /* ==========================================================================
@@ -1448,40 +1461,76 @@ h3 {
 }
 
 .lightbox-meta-bar {
-    width: 100%;
-    max-width: 700px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    width: max-content;
+    min-width: min(92vw, 420px);
+    max-width: min(92vw, 680px);
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: var(--radius-full);
-    padding: 0.6rem 1.25rem;
+    padding: 0.5rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.85rem;
     color: #f8fafc;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
 }
 
 .lightbox-info {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 0.85rem;
+    gap: 0.6rem;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.lightbox-uploader-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.825rem;
+    color: #ffffff;
+    flex-shrink: 0;
+    max-width: 160px;
 }
 
 .lightbox-uploader {
     font-weight: 700;
-    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lightbox-time-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
 }
 
 .lightbox-time {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
+    color: inherit;
+    font-size: inherit;
 }
 
 .lightbox-actions {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 .lightbox-like-btn, .lightbox-download-btn {
@@ -1498,11 +1547,33 @@ h3 {
     font-weight: 600;
     transition: var(--transition);
     text-decoration: none;
+    flex-shrink: 0;
 }
 
 .lightbox-like-btn:hover, .lightbox-download-btn:hover {
     background: rgba(255, 255, 255, 0.25);
     transform: scale(1.05);
+}
+
+@media (max-width: 520px) {
+    .lightbox-meta-bar {
+        min-width: 0;
+        width: 94vw;
+        padding: 0.45rem 0.75rem;
+        gap: 0.5rem;
+    }
+    .lightbox-uploader-chip {
+        max-width: 110px;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.775rem;
+    }
+    .lightbox-time-chip {
+        font-size: 0.75rem;
+    }
+    .lightbox-like-btn, .lightbox-download-btn {
+        padding: 0.3rem 0.55rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* ==========================================================================
@@ -1513,8 +1584,9 @@ h3 {
     top: 0.65rem;
     right: 0.65rem;
     display: flex;
-    gap: 0.4rem;
-    z-index: 3;
+    align-items: center;
+    gap: 0.45rem;
+    z-index: 5;
 }
 
 .btn-like-overlay {
@@ -1673,4 +1745,234 @@ h3 {
         height: 40px;
     }
 }
+
+/* ==========================================================================
+   VIDEO GALLERY BADGES & OVERLAYS
+   ========================================================================== */
+.video-badge {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    color: #ffffff;
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    z-index: 2;
+    pointer-events: none;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.video-play-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    z-index: 2;
+    pointer-events: none;
+    transition: var(--transition);
+}
+
+.video-play-center svg {
+    margin-left: 3px; /* visual center for triangle */
+}
+
+.gallery-item:hover .video-play-center {
+    background: #8b5cf6;
+    border-color: #a78bfa;
+    transform: translate(-50%, -50%) scale(1.15);
+}
+
+/* ==========================================================================
+   UPLOAD PROGRESS MODAL
+   ========================================================================== */
+.upload-progress-card {
+    max-width: 420px;
+    text-align: center;
+    padding: 2.25rem 2rem;
+}
+
+.upload-icon-pulse {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.25rem;
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: uploadPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes uploadPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
+    70% { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(139, 92, 246, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+.upload-filename {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+    word-break: break-all;
+    font-family: var(--font-mono);
+}
+
+.upload-progress-track {
+    width: 100%;
+    height: 10px;
+    background: var(--border);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+    border-radius: var(--radius-full);
+    transition: width 0.15s ease;
+}
+
+.upload-progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+}
+
+.upload-notice {
+    font-size: 0.75rem;
+    color: var(--danger);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   LIGHTBOX VIDEO ENHANCEMENTS & ACTIONS
+   ========================================================================== */
+.lightbox-video-container {
+    width: 100%;
+    max-width: min(90vw, 780px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.lightbox-video-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    width: 100%;
+    z-index: 5;
+}
+
+.lightbox-drive-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.lightbox-drive-action-btn.primary {
+    background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-drive-action-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 22px rgba(139, 92, 246, 0.65);
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+}
+
+.lightbox-drive-action-btn.secondary {
+    background: rgba(255, 255, 255, 0.12);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.lightbox-drive-action-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.lightbox-video-player-wrap {
+    width: 100%;
+    max-height: 65vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #000000;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+#lightbox-native-video {
+    max-width: 100%;
+    max-height: 65vh;
+    border-radius: var(--radius-lg);
+    background: #000;
+    outline: none;
+}
+
+#lightbox-video-frame {
+    width: 100%;
+    min-height: 420px;
+    height: 55vh;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: #000;
+}
+
+.lightbox-video-note {
+    font-size: 0.775rem;
+    color: rgba(255, 255, 255, 0.82);
+    text-align: center;
+    max-width: 650px;
+    line-height: 1.45;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+
 
