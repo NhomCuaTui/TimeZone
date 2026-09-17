@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+    <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4b72" />
+      <stop offset="100%" stop-color="#f43f5e" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.3)" />
+    </filter>
+  </defs>
+
+  <!-- App Rounded Squircle Background -->
+  <rect x="6" y="6" width="116" height="116" rx="28" fill="url(#bgGrad)" filter="url(#shadow)"/>
+  <rect x="7" y="7" width="114" height="114" rx="27" fill="none" stroke="rgba(255, 255, 255, 0.35)" stroke-width="2"/>
+
+  <!-- Camera Body -->
+  <!-- Top Viewfinder / Flash bump -->
+  <path d="M46 36 L52 28 C53 26.5 55 26 57 26 L71 26 C73 26 75 26.5 76 28 L82 36 Z" fill="#ffffff" opacity="0.95"/>
+  <!-- Main Camera Box -->
+  <rect x="24" y="35" width="80" height="58" rx="14" fill="#ffffff" filter="url(#shadow)"/>
+  
+  <!-- Camera Lens Outer Ring -->
+  <circle cx="64" cy="65" r="22" fill="#1e1b4b" stroke="rgba(255,255,255,0.9)" stroke-width="2.5"/>
+  <!-- Camera Lens Inner -->
+  <circle cx="64" cy="65" r="17" fill="#0f172a"/>
+
+  <!-- Glowing Memory Heart inside Lens -->
+  <path d="M64 74 L62.8 72.8 C58.2 68.6 55 65.6 55 62 C55 59.2 57.2 57 60 57 C61.6 57 63.1 57.7 64 58.9 C64.9 57.7 66.4 57 68 57 C70.8 57 73 59.2 73 62 C73 65.6 69.8 68.6 65.2 72.8 Z" fill="url(#heartGrad)"/>
+
+  <!-- Camera Flash Lens Top-Right -->
+  <circle cx="88" cy="46" r="4.5" fill="#3b82f6"/>
+  <circle cx="88" cy="46" r="2" fill="#ffffff"/>
+
+  <!-- Golden Friendship Sparkle Top-Right -->
+  <path d="M102 16 Q102 25 111 25 Q102 25 102 34 Q102 25 93 25 Q102 25 102 16 Z" fill="#fbbf24" filter="url(#shadow)"/>
+  <circle cx="102" cy="25" r="1.5" fill="#ffffff"/>
+</svg>
