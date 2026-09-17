@@ -374,6 +374,59 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Thanh bộ lọc Gallery -->
+                    <div class="gallery-filters-bar">
+                        <div class="filter-group">
+                            <label for="filter-timeline" class="filter-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span>Timeline:</span>
+                            </label>
+                            <select id="filter-timeline" class="filter-select">
+                                <option value="newest" selected>Newest (Mới nhất)</option>
+                                <option value="oldest">Oldest (Cũ nhất)</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="filter-advanced" class="filter-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                <span>Lọc theo:</span>
+                            </label>
+                            <select id="filter-advanced" class="filter-select">
+                                <option value="all" selected>Tất cả ảnh</option>
+                                <option value="posted_by">Posted by (Người đăng)</option>
+                                <option value="my_hearted">My hearted (Đã thả tim)</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group" id="filter-user-container" style="display: none;">
+                            <label for="filter-user" class="filter-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <span>Thành viên:</span>
+                            </label>
+                            <select id="filter-user" class="filter-select">
+                                <option value="" disabled selected>Chọn thành viên...</option>
+                                <option value="Trung">Trung</option>
+                                <option value="Q.Minh">Q.Minh</option>
+                                <option value="An">An</option>
+                                <option value="Hiếu">Hiếu</option>
+                                <option value="Đạt">Đạt</option>
+                                <option value="G.Minh">G.Minh</option>
+                                <option value="Bửu">Bửu</option>
+                                <option value="Khang">Khang</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <p id="gallery-status-msg" class="status-msg" style="margin-top: 0; margin-bottom: 1rem; text-align: left;"></p>
                     
                     <div id="gallery-grid" class="gallery-grid">
@@ -448,6 +501,14 @@
         </div>
     </div>
 
-    <script src="script_v3.js?v=17"></script>
+    <!-- Nút Cuộn Lên Đầu Trang (Back to Top) -->
+    <button id="btn-back-to-top" class="back-to-top-btn" title="Cuộn lên đầu trang" aria-label="Cuộn lên đầu trang">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+    </button>
+
+    <script src="script_v3.js?v=18"></script>
 </body>
 </html>

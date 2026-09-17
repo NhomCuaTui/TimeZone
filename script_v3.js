@@ -257,6 +257,9 @@ tabBtns.forEach(btn => {
         } else if (targetId === 'gallery') {
             if (typeof loadGallery === 'function') loadGallery();
         }
+        if (typeof updateBackToTopVisibility === 'function') {
+            updateBackToTopVisibility();
+        }
     });
 });
 
@@ -724,10 +727,11 @@ const lightboxPrev = document.getElementById('lightbox-prev');
 const lightboxNext = document.getElementById('lightbox-next');
 
 function openLightbox(index) {
-    if (!allImages || index < 0 || index >= allImages.length) return;
+    const list = filteredImages.length ? filteredImages : allImages;
+    if (!list || index < 0 || index >= list.length) return;
     activeLightboxIndex = index;
     
-    const img = allImages[index];
+    const img = list[index];
     const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
     const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
     
@@ -755,16 +759,18 @@ function closeLightbox() {
 }
 
 function nextLightboxImage() {
-    if (!allImages.length) return;
+    const list = filteredImages.length ? filteredImages : allImages;
+    if (!list.length) return;
     let nextIndex = activeLightboxIndex + 1;
-    if (nextIndex >= allImages.length) nextIndex = 0;
+    if (nextIndex >= list.length) nextIndex = 0;
     openLightbox(nextIndex);
 }
 
 function prevLightboxImage() {
-    if (!allImages.length) return;
+    const list = filteredImages.length ? filteredImages : allImages;
+    if (!list.length) return;
     let prevIndex = activeLightboxIndex - 1;
-    if (prevIndex < 0) prevIndex = allImages.length - 1;
+    if (prevIndex < 0) prevIndex = list.length - 1;
     openLightbox(prevIndex);
 }
 
@@ -778,8 +784,9 @@ if (lightboxModal) {
 
 if (lightboxLikeBtn) {
     lightboxLikeBtn.addEventListener('click', () => {
-        if (activeLightboxIndex !== -1 && allImages[activeLightboxIndex]) {
-            toggleLike(allImages[activeLightboxIndex].id);
+        const list = filteredImages.length ? filteredImages : allImages;
+        if (activeLightboxIndex !== -1 && list[activeLightboxIndex]) {
+            toggleLike(list[activeLightboxIndex].id);
         }
     });
 }
@@ -898,8 +905,80 @@ function compressImage(file, maxWidth, maxHeight, quality) {
 }
 
 let allImages = [];
+let filteredImages = [];
 let currentImageIndex = 0;
 const IMAGES_PER_PAGE = 20;
+
+// Filter & Sort Logic for Gallery
+function applyGalleryFilters(resetTimelineToNewest = false) {
+    if (!galleryGrid) return;
+    
+    const filterTimeline = document.getElementById('filter-timeline');
+    const filterAdvanced = document.getElementById('filter-advanced');
+    const filterUser = document.getElementById('filter-user');
+    const filterUserContainer = document.getElementById('filter-user-container');
+    const loadMoreContainer = document.getElementById('load-more-container');
+    
+    // Nếu chọn một filter advanced, Timeline mặc định chuyển về Newest
+    if (resetTimelineToNewest && filterTimeline) {
+        filterTimeline.value = 'newest';
+    }
+    
+    const timelineVal = filterTimeline ? filterTimeline.value : 'newest';
+    const advancedVal = filterAdvanced ? filterAdvanced.value : 'all';
+    const userVal = filterUser ? filterUser.value : '';
+    
+    // Toggle dropdown chọn người đăng
+    if (filterUserContainer) {
+        if (advancedVal === 'posted_by') {
+            filterUserContainer.style.display = 'inline-flex';
+        } else {
+            filterUserContainer.style.display = 'none';
+        }
+    }
+    
+    let result = [...allImages];
+    
+    // 1. Áp dụng Advanced Filter
+    if (advancedVal === 'posted_by') {
+        if (userVal) {
+            result = result.filter(img => img.name === userVal);
+        }
+    } else if (advancedVal === 'my_hearted') {
+        const likesMap = getLikesMap();
+        result = result.filter(img => likesMap[img.id] && likesMap[img.id].liked);
+    }
+    
+    // 2. Áp dụng Timeline Sort
+    if (timelineVal === 'oldest') {
+        result.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    } else {
+        // Mặc định: Newest
+        result.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
+    
+    filteredImages = result;
+    currentImageIndex = 0;
+    galleryGrid.innerHTML = '';
+    
+    if (filteredImages.length === 0) {
+        let emptyMsg = 'Chưa có ảnh nào trong thư viện.';
+        if (advancedVal === 'my_hearted') {
+            emptyMsg = 'Bạn chưa thả tim cho bức ảnh nào. Hãy bấm biểu tượng trái tim trên ảnh để lưu lại!';
+        } else if (advancedVal === 'posted_by') {
+            if (userVal) {
+                emptyMsg = `Chưa có ảnh nào được đăng bởi <strong>${userVal}</strong>.`;
+            } else {
+                emptyMsg = 'Vui lòng chọn một thành viên trong danh sách để xem ảnh.';
+            }
+        }
+        galleryGrid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted); padding: 2rem 1rem;">${emptyMsg}</p>`;
+        if (loadMoreContainer) loadMoreContainer.style.display = 'none';
+        return;
+    }
+    
+    renderNextImages();
+}
 
 // Stale-while-revalidate Gallery Loading
 async function loadGallery() {
@@ -913,11 +992,8 @@ async function loadGallery() {
         try {
             const parsed = JSON.parse(cachedImages);
             if (parsed && parsed.length > 0) {
-                parsed.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 allImages = parsed;
-                currentImageIndex = 0;
-                galleryGrid.innerHTML = '';
-                renderNextImages();
+                applyGalleryFilters(false);
             }
         } catch(e) {
             console.error("Lỗi đọc cache gallery:", e);
@@ -933,6 +1009,8 @@ async function loadGallery() {
         const images = await response.json();
         
         if (!images || images.length === 0) {
+            allImages = [];
+            filteredImages = [];
             if (!cachedImages) {
                 galleryGrid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color: var(--text-muted);">Chưa có ảnh nào trong thư viện.</p>';
             }
@@ -940,13 +1018,9 @@ async function loadGallery() {
             return;
         }
         
-        images.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        localStorage.setItem('timeSync_gallery_cache', JSON.stringify(images));
-        
         allImages = images;
-        currentImageIndex = 0;
-        galleryGrid.innerHTML = '';
-        renderNextImages();
+        localStorage.setItem('timeSync_gallery_cache', JSON.stringify(images));
+        applyGalleryFilters(false);
         
     } catch (error) {
         console.error(error);
@@ -957,13 +1031,15 @@ async function loadGallery() {
 }
 
 function renderNextImages() {
-    if (!galleryGrid || !allImages.length) return;
+    if (!galleryGrid) return;
+    const list = filteredImages;
+    if (!list.length) return;
     
     const likesMap = getLikesMap();
-    const nextLimit = Math.min(currentImageIndex + IMAGES_PER_PAGE, allImages.length);
+    const nextLimit = Math.min(currentImageIndex + IMAGES_PER_PAGE, list.length);
     
     for (let i = currentImageIndex; i < nextLimit; i++) {
-        const img = allImages[i];
+        const img = list[i];
         const timeFormatted = dayjs(img.timestamp).tz(currentUser.tz).format('HH:mm DD/MM/YYYY');
         const directImageUrl = "https://lh3.googleusercontent.com/d/" + img.id;
         const likeData = likesMap[img.id] || { count: 0, liked: false };
@@ -1021,8 +1097,13 @@ function renderNextImages() {
                 if(resData.success) {
                     div.remove();
                     allImages = allImages.filter(item => item.id !== img.id);
+                    filteredImages = filteredImages.filter(item => item.id !== img.id);
                     localStorage.setItem('timeSync_gallery_cache', JSON.stringify(allImages));
                     Toast.show('Đã xóa ảnh thành công!', 'success');
+                    
+                    if (filteredImages.length === 0) {
+                        applyGalleryFilters(false);
+                    }
                 } else {
                     Toast.show("Lỗi khi xóa: " + resData.error, 'error');
                     div.style.opacity = '1';
@@ -1045,7 +1126,7 @@ function renderNextImages() {
     
     const loadMoreContainer = document.getElementById('load-more-container');
     if (loadMoreContainer) {
-        if (currentImageIndex >= allImages.length) {
+        if (currentImageIndex >= list.length) {
             loadMoreContainer.style.display = 'none';
         } else {
             loadMoreContainer.style.display = 'block';
@@ -1056,4 +1137,51 @@ function renderNextImages() {
 const btnLoadMore = document.getElementById('btn-load-more');
 if (btnLoadMore) {
     btnLoadMore.addEventListener('click', renderNextImages);
+}
+
+// Gắn sự kiện cho các bộ lọc Gallery
+const filterTimeline = document.getElementById('filter-timeline');
+if (filterTimeline) {
+    filterTimeline.addEventListener('change', () => applyGalleryFilters(false));
+}
+
+const filterAdvanced = document.getElementById('filter-advanced');
+if (filterAdvanced) {
+    filterAdvanced.addEventListener('change', () => {
+        // Khi chọn một filter advanced, Timeline mặc định chuyển về Newest
+        applyGalleryFilters(true);
+    });
+}
+
+const filterUser = document.getElementById('filter-user');
+if (filterUser) {
+    filterUser.addEventListener('change', () => applyGalleryFilters(false));
+}
+
+// ==============================================
+// 10. BACK TO TOP (CUỘN LÊN ĐẦU TRANG)
+// ==============================================
+const btnBackToTop = document.getElementById('btn-back-to-top');
+
+function updateBackToTopVisibility() {
+    if (!btnBackToTop) return;
+    const galleryTab = document.getElementById('gallery');
+    const isGalleryActive = galleryTab && galleryTab.classList.contains('active');
+    
+    if (isGalleryActive && window.scrollY > 300) {
+        btnBackToTop.classList.add('visible');
+    } else {
+        btnBackToTop.classList.remove('visible');
+    }
+}
+
+window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+
+if (btnBackToTop) {
+    btnBackToTop.addEventListener('click', () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
 }
